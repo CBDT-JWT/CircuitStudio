@@ -1,0 +1,8 @@
+Sparkle 2.10.0
+Official distribution: https://github.com/sparkle-project/Sparkle/releases/download/2.10.0/Sparkle-2.10.0.tar.xz
+SHA256: c2bf58aa8387266ac179357b1415d6f2635f044da8be41042af32425dae6da0c
+Universal prebuilt framework, including the sandbox installer and downloader XPC services.
+Embedded only in the direct-download Mac target. App Store and iOS targets omit the updater.
+The original license is in LICENSE and bundled in Resources/Sparkle-LICENSE.txt.
+Update signing tools are fetched and hash-verified by scripts/sparkle_tools.py.
+Private update signing keys stay in the Mac login Keychain, account circuitstudio-release.

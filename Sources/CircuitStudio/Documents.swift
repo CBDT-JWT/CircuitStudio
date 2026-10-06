@@ -40,7 +40,7 @@ extension FocusedValues { var circuitEditor: EditorStore? { get { self[EditorFoc
             .defaultLaunchBehavior(.suppressed)
         #endif
         #if os(macOS)
-        Settings { StudioSettings().frame(width: 400, height: 250) }
+        Settings { StudioSettings().frame(width: 460, height: 370) }
         #endif
     }
 }
@@ -49,6 +49,9 @@ extension FocusedValues { var circuitEditor: EditorStore? { get { self[EditorFoc
 final class StudioAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.activate(ignoringOtherApps: true)
+        #if canImport(Sparkle) && !APP_STORE
+        _ = AppUpdater.shared
+        #endif
         // Let restored or explicitly opened documents win; otherwise start on a blank canvas.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
             if NSDocumentController.shared.documents.isEmpty {
@@ -61,6 +64,10 @@ final class StudioAppDelegate: NSObject, NSApplicationDelegate {
 struct StudioSettings: View {
     @AppStorage("appearance") private var appearance = "System"
     @State private var showPrivacy = false
-    var body: some View { Form { Picker("Appearance", selection: $appearance) { ForEach(["System", "Light", "Dark"], id: \.self) { Text($0) } }; Text("Circuit Studio uses native document storage. Save in iCloud Drive to sync across your Apple devices.").foregroundStyle(.secondary); Text("Built-in simulation: \(EmbeddedSpice.version)").font(.footnote); Button("Privacy policy") { showPrivacy = true }; DisclosureGroup("ngspice acknowledgements") { ScrollView { Text(ngspiceLicense).font(.system(size: 11)).textSelection(.enabled) }.frame(height: 120) } }.padding(24).sheet(isPresented: $showPrivacy) { PrivacyView() } }
+    var body: some View { Form {
+        #if os(macOS) && canImport(Sparkle) && !APP_STORE
+        UpdateSettings()
+        #endif
+        Picker("Appearance", selection: $appearance) { ForEach(["System", "Light", "Dark"], id: \.self) { Text($0) } }; Text("Circuit Studio uses native document storage. Save in iCloud Drive to sync across your Apple devices.").foregroundStyle(.secondary); Text("Built-in simulation: \(EmbeddedSpice.version)").font(.footnote); Button("Privacy policy") { showPrivacy = true }; DisclosureGroup("ngspice acknowledgements") { ScrollView { Text(ngspiceLicense).font(.system(size: 11)).textSelection(.enabled) }.frame(height: 120) } }.padding(24).sheet(isPresented: $showPrivacy) { PrivacyView() } }
     private var ngspiceLicense: String { AppPrivacy.license }
 }

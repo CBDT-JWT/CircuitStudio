@@ -35,3 +35,9 @@ output/
 !/Release/Release.xcconfig
 __pycache__/
 *.pyc
+
+Service/data/
+circuitstudio-contacts*.csv
+*.sqlite3
+*.sqlite3-wal
+*.sqlite3-shm

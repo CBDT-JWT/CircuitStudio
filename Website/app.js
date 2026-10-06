@@ -51,6 +51,43 @@ if (!matchMedia('(prefers-reduced-motion: reduce)').matches && 'IntersectionObse
   }, { threshold: .08 });
   for (const element of document.querySelectorAll('.reveal')) { element.classList.add('reveal-ready'); observer.observe(element); }
 }
-fetch('downloads/release.json', { cache: 'no-cache' }).then(response => response.ok ? response.json() : Promise.reject()).then(release => {
-  if (Number.isFinite(release.bytes) && release.bytes > 0) document.getElementById('download-size').textContent = `${(release.bytes / 1024 / 1024).toFixed(1)} MB · DMG`;
-}).catch(() => { /* The direct download remains available without metadata. */ });
+const counter = document.getElementById('download-count');
+async function refreshStats() {
+  if (document.hidden) return;
+  try {
+    const response = await fetch('api/stats', { cache: 'no-store', credentials: 'omit' });
+    if (!response.ok) throw new Error('Statistics unavailable');
+    const stats = await response.json();
+    if (!Number.isInteger(stats.downloads) || stats.downloads < 0) throw new Error('Invalid statistics');
+    const label = `${stats.downloads.toLocaleString('zh-CN')} 位用户已下载`;
+    if (counter.textContent !== label) counter.textContent = label;
+    const release = stats.release;
+    if (Number.isFinite(release.bytes) && release.bytes > 0) document.getElementById('download-size').textContent = `${(release.bytes / 1024 / 1024).toFixed(1)} MB · DMG`;
+    if (typeof release.version === 'string') {
+      document.getElementById('download-version').textContent = `当前版本 ${release.version} · 支持应用内更新`;
+      document.querySelector('.checksum-link').href = `downloads/SHA256SUMS.txt?v=${encodeURIComponent(release.version)}`;
+    }
+  } catch { counter.textContent = '下载统计暂时不可用'; }
+}
+refreshStats();
+setInterval(refreshStats, 5000);
+document.addEventListener('visibilitychange', refreshStats);
+const form = document.getElementById('download-form');
+form.addEventListener('submit', async event => {
+  event.preventDefault();
+  const button = form.querySelector('button');
+  const status = document.getElementById('download-status');
+  button.disabled = true; status.dataset.error = 'false'; status.textContent = '正在准备安装包…';
+  try {
+    const response = await fetch('api/request-download', { method: 'POST', credentials: 'omit', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.elements.email.value, company: form.elements.company.value }) });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(result.error || (response.status === 429 ? '请求较多，请稍后再试。' : '暂时无法下载，请稍后再试。'));
+    if (typeof result.downloadURL !== 'string' || !/^api\/download\/[A-Za-z0-9_-]{43}$/.test(result.downloadURL)) throw new Error('下载链接无效，请稍后再试。');
+    const link = document.createElement('a');
+    link.href = result.downloadURL; link.textContent = '重新下载';
+    status.replaceChildren(document.createTextNode('下载已准备好。若未开始，点击'), link, document.createTextNode('。'));
+    window.location.assign(result.downloadURL);
+    setTimeout(refreshStats, 2000);
+  } catch (error) { status.dataset.error = 'true'; status.textContent = error.message; }
+  finally { button.disabled = false; }
+});
