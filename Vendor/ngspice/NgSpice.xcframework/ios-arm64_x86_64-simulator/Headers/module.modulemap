@@ -1,0 +1,1 @@
+module NgSpice { umbrella header "NgSpice.h" export * }

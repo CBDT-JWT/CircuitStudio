@@ -1,0 +1,8 @@
+ngspice 47
+Source: https://downloads.sourceforge.net/project/ngspice/ng-spice-rework/47/ngspice-47.tar.gz
+SHA256: 894e649651f1838a14095e5a5439e7d3aa63e87ede14d283173fda4fcdef675f
+Static shared-API core; XSPICE, OSDI, OpenMP, readline, FFTW and X11 disabled.
+Device: arm64; simulator and macOS: arm64 + x86_64. Minimum OS: 26.
+iOS CLI shell/plot helpers return ENOTSUP; simulation devices are unmodified.
+Release 47 patch: remove the disabled-XSPICE case referencing its missing OPT_ENH_RSHUNT enum.
+Rebuild: python3 scripts/build_ngspice.py

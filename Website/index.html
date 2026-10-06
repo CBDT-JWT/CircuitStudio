@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Circuit Studio，原生 Mac 电路绘图与论文插图工具。空白画布起步，Schematic 离线仿真，Illustration 绘制框图与端口，免费开源。">
+  <meta property="og:title" content="Circuit Studio · 从电路想法，到清晰表达">
+  <meta property="og:description" content="原生 Mac 画布，离线 SPICE 仿真，精致的技术插图。免费开源。">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://www.weitao-jiang.cn/static/circuit-studio/">
+  <meta property="og:image" content="https://www.weitao-jiang.cn/static/circuit-studio/assets/glass-sheets.webp">
+  <title>Circuit Studio · 电路与想法，清晰呈现</title>
+  <link rel="icon" href="assets/app-icon.png" type="image/png">
+  <link rel="canonical" href="https://www.weitao-jiang.cn/static/circuit-studio/">
+  <link rel="preload" as="image" href="assets/glass-sheets.webp">
+  <link rel="stylesheet" href="style.css?v=110">
+  <script src="app.js?v=110" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="nav-wrap">
+    <nav class="nav container" aria-label="主导航">
+      <a class="brand" href="#" aria-label="Circuit Studio 首页"><img src="assets/app-icon.png" width="38" height="38" alt=""><span>Circuit Studio</span></a>
+      <div class="nav-links"><a href="#canvas">画布</a><a href="#workflow">工作方式</a><a href="https://github.com/CBDT-JWT/CircuitStudio">GitHub ↗</a></div>
+      <div class="nav-actions"><button class="theme-toggle" type="button" aria-label="切换深色主题">深色</button><a class="button button-small" href="#download">下载 Mac 版 <span aria-hidden="true">↗</span></a></div>
+    </nav>
+  </header>
+  <main id="main">
+    <section class="hero container">
+      <div class="hero-copy">
+        <p class="eyebrow">为 Mac 而生的电路画布</p>
+        <h1>从电路想法，<br>到<span>清晰表达。</span></h1>
+        <p class="hero-description">画电路，验证想法，整理成图。<br>一张原生画布，连接设计与表达。</p>
+        <div class="hero-actions"><a class="button" href="#download">下载 Mac 版 <span aria-hidden="true">↓</span></a><a class="text-link" href="#canvas">看看画布 <span aria-hidden="true">↗</span></a></div>
+      </div>
+      <figure class="hero-art"><img src="assets/glass-sheets.webp" width="1536" height="1024" alt="刻有电路与框图线条的三层磨砂玻璃，展示绘图的层次与精度" fetchpriority="high"></figure>
+    </section>
+
+    <section class="product container" id="canvas" aria-labelledby="canvas-title">
+      <div class="product-heading reveal"><h2 id="canvas-title">一张画布，两种专注。</h2><p>打开就是空白。选择工作模式，再落下第一笔。</p></div>
+      <div class="view-tabs" role="tablist" aria-label="应用工作模式">
+        <button class="view-tab" type="button" id="tab-schematic" role="tab" aria-selected="true" aria-controls="panel-schematic" tabindex="0"><span>Schematic</span><small>电路设计与仿真</small></button>
+        <button class="view-tab" type="button" id="tab-illustration" role="tab" aria-selected="false" aria-controls="panel-illustration" tabindex="-1"><span>Illustration</span><small>框图与论文插图</small></button>
+        <button class="view-tab" type="button" id="tab-blank" role="tab" aria-selected="false" aria-controls="panel-blank" tabindex="-1"><span>Blank canvas</span><small>从你的想法开始</small></button>
+      </div>
+      <div class="screenshot-stage">
+        <div id="panel-schematic" role="tabpanel" aria-labelledby="tab-schematic" tabindex="0"><img src="assets/schematic.webp" width="2880" height="1774" alt="Circuit Studio 真实 Mac 界面：共源放大器原理图与离线 AC 仿真波形" loading="lazy"></div>
+        <div id="panel-illustration" role="tabpanel" aria-labelledby="tab-illustration" tabindex="0" hidden><img src="assets/illustration.webp" width="2880" height="1774" alt="Circuit Studio 真实 Mac 界面：带输入与输出端口的闭环系统框图，左侧为图形库" loading="lazy"></div>
+        <div id="panel-blank" role="tabpanel" aria-labelledby="tab-blank" tabindex="0" hidden><img src="assets/blank.webp" width="2880" height="1774" alt="Circuit Studio 默认空白文档，可在顶部选择 Schematic 或 Illustration 模式" loading="lazy"></div>
+      </div>
+      <div class="product-caption"><span>真实应用界面</span><p id="view-caption" aria-live="polite">元件、连线、工程参数与波形，在同一个工作空间。</p></div>
+    </section>
+
+    <section class="workflow container" id="workflow" aria-labelledby="workflow-title">
+      <div class="workflow-intro reveal"><h2 id="workflow-title">设计的严谨。<br>表达的自由。</h2><p>电路需要准确，图示需要清楚。<br>把两件事都交给顺手的工具。</p></div>
+      <article class="feature feature-sim reveal">
+        <div class="feature-copy"><span class="feature-mode">Schematic</span><h3>画完电路，<br>直接看见响应。</h3><p>内置 ngspice 47。本机运行工作点、DC、AC 与瞬态分析，离线也能验证设计。仿真结果可在新标签页或窗口中独立查看。</p><div class="analysis-types" aria-label="支持的仿真分析"><span>OP</span><span>DC</span><span>AC</span><span>TRAN</span></div></div>
+        <div class="feature-visual"><img src="assets/waveform.webp" width="1890" height="582" alt="应用计算并绘制的 AC 频率响应波形" loading="lazy"></div>
+      </article>
+      <article class="feature feature-illustration reveal">
+        <div class="feature-copy"><span class="feature-mode">Illustration</span><h3>让复杂系统，<br>一眼读懂。</h3><p>用模块、端口、求和节点和连接箭头讲清信号路径。自由绘图，专注框图与论文插图。</p></div>
+        <div class="feature-visual diagram-visual"><img src="assets/system-diagram.webp" width="2120" height="922" alt="从输入端口、求和节点到 OTA、采样保持、ADC 和反馈 DAC 的系统框图，由实际绘图引擎导出" loading="lazy"></div>
+        <div class="figure-types"><span>输入 / 输出端口</span><span>双向端口</span><span>13 种图形</span><span>吸附与连接箭头</span></div>
+      </article>
+    </section>
+
+    <section class="export container reveal" aria-labelledby="export-title">
+      <div class="export-copy"><h2 id="export-title">从画布，到你的下一页。</h2><p>矢量导出保持线条清晰，数学标签保留下标。<br>论文、课件与设计记录，都有合适的出口。</p></div>
+      <div class="formats" aria-label="导出格式"><span class="format-primary">PDF</span><span class="format-primary">SVG</span><span>PNG</span><span>JPEG</span><span>TIFF</span><span>CircuitikZ</span><span>SPICE<small>Schematic</small></span></div>
+      <div class="principles"><div><h3>原生体验</h3><p>SwiftUI 界面，Mac 文档窗口、快捷键与撤销重做。</p></div><div><h3>离线工作</h3><p>绘图和仿真在本机完成，不需要账号或网络。</p></div><div><h3>源码开放</h3><p>应用代码采用 MIT 许可。欢迎改进，也欢迎分享。</p></div></div>
+    </section>
+
+    <section class="download container" id="download" aria-labelledby="download-title">
+      <div class="download-main reveal"><img src="assets/app-icon.png" width="84" height="84" alt="Circuit Studio 应用图标"><h2 id="download-title">下一张图，<br>从这里开始。</h2><p>免费使用，源码开放。</p><a class="button download-button" href="downloads/CircuitStudio-1.1.0-universal.dmg" download>下载 Mac 版 <span aria-hidden="true">↓</span></a><p class="download-meta">macOS 26 或更新 · Apple Silicon 与 Intel<span id="download-size"></span></p></div>
+      <div class="install-info reveal"><h3>打开。拖入。开始画。</h3><ol><li><span>01</span><div><strong>打开 DMG</strong><p>下载后，双击磁盘映像文件。</p></div></li><li><span>02</span><div><strong>拖入 Applications</strong><p>把 Circuit Studio 拖到「应用程序」文件夹。</p></div></li><li><span>03</span><div><strong>选择画布模式</strong><p>Schematic 仿真，Illustration 画框图。</p></div></li></ol><details class="first-launch" open><summary>首次打开说明</summary><p>当前直接下载版尚未经过 Apple 公证。若 macOS 阻止打开，请先尝试启动，再到「系统设置 → 隐私与安全性」选择「仍要打开」。<a href="https://support.apple.com/102445">Apple 打开说明 ↗</a></p></details><a class="checksum-link" href="downloads/SHA256SUMS.txt">校验下载文件 ↗</a></div>
+    </section>
+
+    <section class="faq container" aria-labelledby="faq-title"><h2 id="faq-title">再了解一点。</h2><div class="faq-items"><details><summary>两种模式能切换吗？</summary><p>可以。在画布顶部切换 Schematic 与 Illustration，已有图形会保留。模式随文档保存，也能撤销切换。Illustration 中隐藏仿真工具，Schematic 中可使用离线仿真。</p></details><details><summary>需要额外安装仿真引擎吗？</summary><p>不需要。ngspice 47 已随 Mac 应用打包，支持工作点、DC 扫描、AC 分析和瞬态分析。当前不包含 Noise、Monte Carlo、OSDI 插件或 XSPICE 动态代码模型。</p></details><details><summary>已有文档还能打开吗？</summary><p>可以。旧版 .circuit 文档会自动识别绘图模式。新版本保存为格式版本 3，包含模式、图形和连接关系。</p></details><details><summary>在哪里看源码和反馈问题？</summary><p>访问 <a href="https://github.com/CBDT-JWT/CircuitStudio">GitHub 仓库</a>，查看源码、构建说明与发行记录，也可以在 Issues 中反馈问题。应用源码采用 MIT 许可，ngspice 保留自身许可。</p></details></div></section>
+  </main>
+  <footer class="footer container"><a class="brand" href="#"><img src="assets/app-icon.png" width="30" height="30" alt=""><span>Circuit Studio</span></a><p>为电路，也为清晰的想法。</p><div><a href="https://github.com/CBDT-JWT/CircuitStudio">GitHub ↗</a><a href="support.html">支持</a><a href="privacy.html">隐私</a></div></footer>
+</body>
+</html>
