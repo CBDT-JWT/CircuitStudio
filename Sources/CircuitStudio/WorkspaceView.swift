@@ -14,7 +14,15 @@ struct WorkspaceView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("appearance") private var appearance = "System"
     @State private var librarySheet = false; @State private var inspectorSheet = false
-    init(document: Binding<CircuitFile>, fileURL: URL?) { _document = document; self.fileURL = fileURL; _store = State(initialValue: EditorStore(document.wrappedValue.circuit)) }
+    @State private var assistantSheet = false
+    #if os(iOS)
+    @State private var handDrawingSheet = false
+    @State private var notebook = IPadNotebookSettings()
+    @State private var notebookInk = IPadNotebookInk()
+    #endif
+    init(document: Binding<CircuitFile>, fileURL: URL?) {
+        _document = document; self.fileURL = fileURL; _store = State(initialValue: EditorStore(document.wrappedValue.circuit))
+    }
     var body: some View {
         GeometryReader { geometry in
             #if os(iOS)
@@ -29,16 +37,42 @@ struct WorkspaceView: View {
                     canvasHeader(compact: compact, inlineInspector: geometry.size.width > 1000)
                     if !waveformOnly { ZStack {
                         NativeCanvas(store: store)
+                            .contextMenu {
+                                Button("Copy selection",systemImage:"doc.on.doc") { StudioClipboard.copySelection(store) }.disabled(store.selection.isEmpty)
+                                Button("Copy selection as PNG",systemImage:"photo") { StudioClipboard.copyAs(.png,store:store) }.disabled(store.selection.isEmpty)
+                                Button("Cut",systemImage:"scissors") { StudioClipboard.cutSelection(store) }.disabled(store.selection.isEmpty)
+                                Button("Paste",systemImage:"doc.on.clipboard") { StudioClipboard.pasteSelection(store) }
+                                Button("Select all") { store.selection = store.circuit.objectIDs }
+                                Button("Properties") { store.revealInspector() }.disabled(store.selection.isEmpty)
+                                Button("Rotate") { store.transformSelection("Rotate") }.disabled(store.selection.isEmpty)
+                                Button("Mirror left/right") { store.transformSelection("Flip horizontal") }.disabled(store.selection.isEmpty)
+                                Button("Mirror top/bottom") { store.transformSelection("Flip vertical") }.disabled(store.selection.isEmpty)
+                            }
                             .onPencilDoubleTap { _ in store.activateTool(store.tool == .select ? (store.supportsSimulation ? .wire : .connector) : .select) }
                             .onPencilSqueeze { phase in if case .ended = phase { store.showPalette = true } }
                             .accessibilityLabel("\(store.circuit.purpose.rawValue) drawing canvas")
+                        #if os(iOS)
+                        if UIDevice.current.userInterfaceIdiom == .pad && store.supportsSimulation {
+                            IPadNotebookInkView(model: notebookInk, store: store, settings: notebook)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            IPadNotebookPointer(store: store, settings: notebook, ink: notebookInk)
+                        }
+                        #endif
                         VStack {
-                            HStack { Label(store.circuit.purpose.rawValue, systemImage: store.supportsSimulation ? "point.3.connected.trianglepath.dotted" : "square.on.circle").font(.system(size: 12, weight: .medium)).padding(.horizontal, 14).padding(.vertical, 8).background(.regularMaterial, in: Capsule()); Spacer(); if store.circuit.mode == .publication { Label("Publication", systemImage: "book.closed").font(.caption).foregroundStyle(.secondary) } }.padding(18)
+                            HStack { Label(LocalizedStringKey(store.circuit.purpose.rawValue), systemImage: store.supportsSimulation ? "point.3.connected.trianglepath.dotted" : "square.on.circle").font(.system(size: 12, weight: .medium)).padding(.horizontal, 14).padding(.vertical, 8).background(.regularMaterial, in: Capsule()); Spacer(); if store.circuit.mode == .publication { Label("Publication", systemImage: "book.closed").font(.caption).foregroundStyle(.secondary) } }.padding(18)
                             Spacer()
                             if let toast = store.toast { Text(toast).font(.callout).padding(.horizontal, 16).padding(.vertical, 9).glassEffect().transition(.opacity).task(id: toast) { try? await Task.sleep(for: .seconds(2.4)); if store.toast == toast { store.toast = nil } } }
+                            #if os(iOS)
+                            if UIDevice.current.userInterfaceIdiom == .pad && store.supportsSimulation {
+                                Text(notebook.tool == .circuit ? "\(notebook.allowsFingerDrawing ? "手指与 Pencil" : "仅 Apple Pencil") · \(notebook.recognitionStatus)" : notebook.tool == .eraser ? (notebook.eraseCircuit && notebook.erasePending ? "擦除电路、导线和笔迹" : notebook.eraseCircuit ? "擦除电路对象" : notebook.erasePending ? "擦除待识别笔迹" : "擦除批注") : "\(notebook.tool.title) · \(notebook.allowsFingerDrawing ? "手指与 Pencil" : "仅 Apple Pencil")")
+                                    .font(.system(size: 11)).foregroundStyle(.secondary).padding(.horizontal, 16).allowsHitTesting(false)
+                                IPadNotebookToolbar(settings: notebook, addComponents: { notebook.tool = .lasso; store.showPalette = true }, addSketch: { handDrawingSheet = true }, addLabel: { notebook.tool = .lasso; store.activateTool(.label) }, copySelection: { StudioClipboard.copySelection(store) }, selectTool: { store.activateTool(.select) })
+                            } else if compact { phoneToolbar } else { canvasToolbar }
+                            #else
                             if compact { phoneToolbar } else { canvasToolbar }
+                            #endif
                             HStack {
-                                Label(store.snapEnabled ? "Snap on" : "Snap off", systemImage: "dot.square").font(.system(size: 11))
+                                Label(LocalizedStringKey(store.snapEnabled ? "Snap on" : "Snap off"), systemImage: "dot.square").font(.system(size: 11))
                                 Spacer()
                                 Text(store.isPaperOnly ? "\(store.circuit.figures.count) shapes · \(store.circuit.figureConnectors.count) arrows" : "\(store.circuit.components.filter { !$0.kind.isConnection }.count) components · \(Connectivity(store.circuit).nets.count) nets").font(.system(size: 11, design: .monospaced))
                             }.foregroundStyle(.secondary).padding(.horizontal, 20).padding(.vertical, 12)
@@ -84,29 +118,40 @@ struct WorkspaceView: View {
         .sheet(isPresented: $store.showImport) { ImportView(store: store) }
         .sheet(isPresented: $store.showSimulationSettings) { SimulationSettingsView(store: store) }
         .sheet(isPresented: $store.showModels) { ModelLibraryView(store: store) }
+        .sheet(isPresented: $store.showShortcuts) { ShortcutHelpView() }
+        .sheet(isPresented: $assistantSheet) { CircuitAssistantView(store: store) }
+        #if os(iOS)
+        .fullScreenCover(isPresented: $handDrawingSheet) { HandDrawnCircuitView(store: store) }
+        #endif
         .sheet(isPresented: $librarySheet) { NavigationStack { LibraryView(store: store).toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { librarySheet = false } } } }.presentationDetents([.medium, .large]) }
         .sheet(isPresented: $inspectorSheet) { NavigationStack { InspectorView(store: store).toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { inspectorSheet = false } } } }.presentationDetents([.medium, .large]) }
         .onChange(of: store.inspectorRequested) { _, value in if value { inspectorSheet = true; store.inspectorRequested = false } }
+        #if os(iOS)
+        .onChange(of: store.tool) { _, tool in if tool != .select { notebook.tool = .lasso } }
+        .onChange(of: store.insertKind) { _, kind in if kind != nil { notebook.tool = .lasso } }
+        .onChange(of: store.insertFigureKind) { _, kind in if kind != nil { notebook.tool = .lasso } }
+        .onDisappear { notebookInk.cancel() }
+        #endif
         .alert("Circuit needs attention", isPresented: Binding(get: { store.error != nil }, set: { if !$0 { store.error = nil } })) { Button("OK") { store.error = nil } } message: { Text(store.error ?? "") }
         .alert("Add net label", isPresented: Binding(get: { store.labelPoint != nil }, set: { if !$0 { store.labelPoint = nil } })) { TextField("V_{OUT}", text: $store.labelText); Button("Add") { store.addLabel() }; Button("Cancel", role: .cancel) { store.labelPoint = nil } } message: { Text("Use subscripts such as V_{IN}. Identical labels connect electrically.") }
         .userActivity("com.circuitstudio.edit") { activity in activity.title = store.circuit.title; activity.isEligibleForHandoff = fileURL != nil; if let fileURL { activity.userInfo = ["documentURL": fileURL.absoluteString] } }
         .onContinueUserActivity("com.circuitstudio.edit") { activity in if let value = activity.userInfo?["documentURL"] as? String, let url = URL(string: value) { openDocument(url) } }
     }
     func canvasHeader(compact: Bool, inlineInspector: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
           HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(store.circuit.title).font(.system(size: compact ? 18 : 22, weight: .semibold)).lineLimit(1)
-                Text(store.circuit.purpose.subtitle).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
+                Text(store.circuit.title).font(.system(size: compact ? 18 : 20, weight: .semibold)).lineLimit(1)
+                Text(LocalizedStringKey(store.circuit.purpose.subtitle)).font(.system(size: 12)).foregroundStyle(.secondary).lineLimit(1)
             }
             Spacer(minLength: 10)
             Picker("Canvas mode", selection: Binding(get: { store.circuit.purpose }, set: { store.setPurpose($0) })) {
-                ForEach(CanvasPurpose.allCases) { Text($0.rawValue).tag($0) }
+                ForEach(CanvasPurpose.allCases) { Text(LocalizedStringKey($0.rawValue)).tag($0) }
             }.pickerStyle(.segmented).labelsHidden().frame(width: compact ? 205 : 230).help("Schematic runs simulations. Illustration draws diagrams and figures.")
             if !compact {
                 Menu {
-                    Picker("Diagram mode", selection: Binding(get: { store.circuit.mode }, set: { mode in store.transaction("Change diagram mode") { $0.mode = mode } })) { ForEach(DiagramMode.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
-                } label: { Label(store.circuit.mode == .standard ? "Academic" : store.circuit.mode.rawValue, systemImage: "book.closed").font(.system(size: 12, weight: .medium)) }.menuStyle(.borderlessButton).fixedSize()
+                    Picker("Diagram mode", selection: Binding(get: { store.circuit.mode }, set: { mode in store.transaction("Change diagram mode") { $0.mode = mode } })) { ForEach(DiagramMode.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) } }
+                } label: { Label(LocalizedStringKey(store.circuit.mode == .standard ? "Academic" : store.circuit.mode.rawValue), systemImage: "book.closed").font(.system(size: 12, weight: .medium)) }.menuStyle(.borderlessButton).fixedSize()
             }
           }
           #if os(iOS)
@@ -114,6 +159,8 @@ struct WorkspaceView: View {
               if !store.isPaperOnly { analysisSelector.buttonStyle(.glass); runButton.buttonStyle(.glassProminent) }
               else { figureMenu.buttonStyle(.glass) }
               Button { store.showExport = true } label: { Image(systemName: "square.and.arrow.up") }.buttonStyle(.glass).accessibilityLabel("Export circuit")
+              if store.supportsSimulation { Button { assistantSheet = true } label: { Image(systemName: "sparkles") }.buttonStyle(.glass).accessibilityLabel("Circuit assistant") }
+
               Spacer(minLength: 8)
               Button { store.undo() } label: { Image(systemName: "arrow.uturn.backward") }.buttonStyle(.glass).disabled(!store.canUndo).accessibilityLabel("Undo")
               if !compact {
@@ -122,7 +169,7 @@ struct WorkspaceView: View {
               }
           }.controlSize(.small)
           #endif
-        }.padding(.horizontal, compact ? 20 : 28).padding(.vertical, 20).background(.background)
+        }.padding(.horizontal, compact ? 16 : 20).padding(.vertical, 12).background(.background)
     }
     private var analysisSelector: some View {
         Menu { ForEach(Analysis.allCases, id: \.self) { analysis in Button(analysis.rawValue) { store.transaction("Change analysis") { $0.simulation.analysis = analysis } } }; Divider(); Button("Simulation settings…") { store.showSimulationSettings = true } } label: { Text(store.circuit.simulation.analysis == .ac ? "AC" : store.circuit.simulation.analysis == .tran ? "TRAN" : store.circuit.simulation.analysis == .dc ? "DC" : "OP").font(.system(size: 12, weight: .medium, design: .monospaced)) }.accessibilityLabel("Simulation analysis")
@@ -153,12 +200,12 @@ struct WorkspaceView: View {
         Menu {
             Button("Search components and shapes…") { store.showPalette = true }
             Section("Paper shapes") { ForEach(FigureKind.allCases) { kind in Button { store.insertFigure(kind) } label: { Label(kind.rawValue, systemImage: kind.icon) } } }
-            Section("Connectors") { Button("Draw arrow") { store.cancel(); store.tool = .connector }; Picker("New arrow route", selection: $store.connectorRoute) { ForEach(FigureRoute.allCases, id: \.self) { Text($0.rawValue).tag($0) } } }
+            Section("Connectors") { Button("Draw arrow") { store.cancel(); store.tool = .connector }; Picker("New arrow route", selection: $store.connectorRoute) { ForEach(FigureRoute.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) } } }
             Section("Paper templates") { ForEach(PaperExample.allCases) { example in Button(example.rawValue) { store.insertPaperExample(example) } } }
         } label: { Image(systemName: "plus").frame(width: 40, height: 36) }.menuStyle(.borderlessButton).fixedSize().accessibilityLabel("Add shapes and components")
     }
     func toolButton(_ tool: CanvasTool) -> some View {
-        Button { store.activateTool(tool) } label: { Image(systemName: tool.icon).font(.system(size: 16, weight: .medium)).frame(width: 40, height: 36).foregroundStyle(store.tool == tool ? StudioStyle.accent : Color.primary).background(store.tool == tool ? StudioStyle.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 12)) }.help("\(tool.rawValue) · \(tool.shortcut)").accessibilityLabel(tool.rawValue).accessibilityAddTraits(store.tool == tool ? .isSelected : [])
+        Button { store.activateTool(tool) } label: { Image(systemName: tool.icon).font(.system(size: 16, weight: .medium)).frame(width: 40, height: 36).foregroundStyle(store.tool == tool ? StudioStyle.accent : Color.primary).background(store.tool == tool ? StudioStyle.accent.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 12)) }.help("\(NSLocalizedString(tool.rawValue, comment: "")) · \(tool.shortcut)").accessibilityLabel(LocalizedStringKey(tool.rawValue)).accessibilityAddTraits(store.tool == tool ? .isSelected : [])
     }
     #if os(macOS)
     @ToolbarContentBuilder func toolbar(compact: Bool) -> some ToolbarContent {
@@ -167,6 +214,7 @@ struct WorkspaceView: View {
             if !compact { Button { store.showTemplates = true } label: { Image(systemName: "rectangle.stack.badge.plus") }.help("Circuit templates"); Button { store.undo() } label: { Image(systemName: "arrow.uturn.backward") }.disabled(!store.canUndo).help("Undo") }
             if !store.isPaperOnly { analysisSelector; runButton }
             Button { store.showExport = true } label: { Image(systemName: "square.and.arrow.up") }.help("Export circuit")
+            if store.supportsSimulation { Button { assistantSheet = true } label: { Image(systemName: "sparkles") }.help("Explain circuit or recognize an image") }
             if !compact { Button { store.showInspector.toggle() } label: { Image(systemName: "sidebar.right") }.help("Toggle inspector") }
         }
     }

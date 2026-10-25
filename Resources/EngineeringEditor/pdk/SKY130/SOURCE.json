@@ -1,0 +1,87 @@
+{
+  "repository": "https://github.com/google/skywater-pdk-libs-sky130_fd_pr",
+  "commit": "f62031a1be9aefe902d6d54cddd6f59b57627436",
+  "license": "Apache-2.0",
+  "invariantSourceSHA256": "9f47fd02e7d4010fc3eccc59420bf8f2ec86aa8b5ee68d677d150a6ff405f12e",
+  "transformations": [
+    "Select official typical-corner MOS files and required invariant parameters",
+    "Strip comments/blank lines",
+    "Convert only M invocation geometry from micrometres to SI; underlying model coefficients unchanged"
+  ],
+  "packets": [
+    {
+      "id": "sky130-svt-tt",
+      "name": "1.8V SVT NMOS / PMOS",
+      "process": "SKY130",
+      "corner": "TT",
+      "path": "SKY130/sky130-1p8-svt-tt.spice",
+      "notice": "SkyWater \u5b98\u65b9 SKY130 1.8V SVT MOS\u3001TT \u5178\u578b\u89d2\uff1b\u539f\u59cb BSIM4 \u7cfb\u6570\uff0c\u9002\u914d\u5668\u53ea\u505a\u5c3a\u5bf8\u5355\u4f4d\u8f6c\u6362\u3002\u5f00\u6e90\u53d1\u5e03\u4e0d\u4f5c\u4e3a\u6d41\u7247\u7b7e\u6838\u3002",
+      "sha256": "8dc7a4f93d8dcaca57b33dc91ec1527a2d092951f2012689df9eba765e01e1f0",
+      "devices": [
+        "sky130_fd_pr__nfet_01v8",
+        "sky130_fd_pr__pfet_01v8"
+      ],
+      "geometry": {
+        "sky130_fd_pr__nfet_01v8": {
+          "minLengthM": 1.5e-07,
+          "minWidthM": 3.6e-07
+        },
+        "sky130_fd_pr__pfet_01v8": {
+          "minLengthM": 1.5e-07,
+          "minWidthM": 4.2e-07
+        }
+      },
+      "sources": [
+        {
+          "path": "cells/nfet_01v8/sky130_fd_pr__nfet_01v8__tt.pm3.spice",
+          "sha256": "3d706d50cf2e57175aea78bcf27e4ee07d9f750b154a4b06e6090531364a831b",
+          "adaptedWrapperLines": 1,
+          "invariantParameters": 742
+        },
+        {
+          "path": "cells/pfet_01v8/sky130_fd_pr__pfet_01v8__tt.pm3.spice",
+          "sha256": "bf40d8c358fc11998f60f3734208dce44c206b0007a51c7bb5680f55d41a5c55",
+          "adaptedWrapperLines": 1,
+          "invariantParameters": 762
+        }
+      ]
+    },
+    {
+      "id": "sky130-lvt-tt",
+      "name": "1.8V LVT NMOS / PMOS",
+      "process": "SKY130",
+      "corner": "TT",
+      "path": "SKY130/sky130-1p8-lvt-tt.spice",
+      "notice": "SkyWater \u5b98\u65b9 SKY130 1.8V LVT MOS\u3001TT \u5178\u578b\u89d2\uff1bPMOS LVT \u8981\u6c42 L\u2265350nm\u3002\u539f\u59cb BSIM4 \u7cfb\u6570\uff0c\u9002\u914d\u5668\u53ea\u505a\u5c3a\u5bf8\u5355\u4f4d\u8f6c\u6362\u3002\u5f00\u6e90\u53d1\u5e03\u4e0d\u4f5c\u4e3a\u6d41\u7247\u7b7e\u6838\u3002",
+      "sha256": "492a9173e0f974a73ac7fa6864ab14e21b188b8bcf6d0c7d8b42ef65e6e62a9f",
+      "devices": [
+        "sky130_fd_pr__nfet_01v8_lvt",
+        "sky130_fd_pr__pfet_01v8_lvt"
+      ],
+      "geometry": {
+        "sky130_fd_pr__nfet_01v8_lvt": {
+          "minLengthM": 1.5e-07,
+          "minWidthM": 4.2e-07
+        },
+        "sky130_fd_pr__pfet_01v8_lvt": {
+          "minLengthM": 3.5e-07,
+          "minWidthM": 4.2e-07
+        }
+      },
+      "sources": [
+        {
+          "path": "cells/nfet_01v8_lvt/sky130_fd_pr__nfet_01v8_lvt__tt.pm3.spice",
+          "sha256": "5aa88993ad3ca9c34a3191b545dc7b4cfaa0dcd348439a92a60040f9d22a43a2",
+          "adaptedWrapperLines": 1,
+          "invariantParameters": 500
+        },
+        {
+          "path": "cells/pfet_01v8_lvt/sky130_fd_pr__pfet_01v8_lvt__tt.pm3.spice",
+          "sha256": "6fb9d55a5a9c5591d70a895fa9fe2297371759118886f091cf4129ad2f3f2218",
+          "adaptedWrapperLines": 1,
+          "invariantParameters": 739
+        }
+      ]
+    }
+  ]
+}

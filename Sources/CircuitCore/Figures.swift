@@ -5,8 +5,9 @@ public enum FigureKind: String, Codable, CaseIterable, Identifiable, Sendable {
     case rectangle = "Block", roundedRectangle = "Rounded block", ellipse = "Ellipse", diamond = "Decision", triangle = "Triangle", text = "Text"
     case inputPort = "Input port", outputPort = "Output port", bidirectionalPort = "Bidirectional port"
     case summingJunction = "Summing junction", parallelogram = "Data / I/O", hexagon = "Preparation", cylinder = "Database"
+    case polarity = "Polarity (+ / text / −)", plus = "Plus sign", minus = "Minus sign", dots = "Three dots"
     public var id: String { rawValue }
-    public var icon: String { switch self { case .rectangle: "rectangle"; case .roundedRectangle: "rectangle.roundedtop"; case .ellipse: "circle"; case .diamond: "diamond"; case .triangle: "triangle"; case .text: "textformat"; case .inputPort: "arrow.right.to.line"; case .outputPort: "arrow.left.to.line"; case .bidirectionalPort: "arrow.left.arrow.right"; case .summingJunction: "plus.circle"; case .parallelogram: "rectangle.on.rectangle"; case .hexagon: "hexagon"; case .cylinder: "cylinder" } }
+    public var icon: String { switch self { case .rectangle: "rectangle"; case .roundedRectangle: "rectangle.roundedtop"; case .ellipse: "circle"; case .diamond: "diamond"; case .triangle: "triangle"; case .text: "textformat"; case .inputPort: "arrow.right.to.line"; case .outputPort: "arrow.left.to.line"; case .bidirectionalPort: "arrow.left.arrow.right"; case .summingJunction: "plus.circle"; case .parallelogram: "rectangle.on.rectangle"; case .hexagon: "hexagon"; case .cylinder: "cylinder"; case .polarity: "plusminus"; case .plus: "plus"; case .minus: "minus"; case .dots: "ellipsis" } }
     public var category: String {
         switch self { case .inputPort, .outputPort, .bidirectionalPort, .summingJunction: "Ports & signal flow"; case .diamond, .parallelogram, .hexagon, .cylinder: "Flowchart"; default: "Shapes & text" }
     }
@@ -17,6 +18,7 @@ public struct FigureStyle: Codable, Hashable, Sendable {
     /// nil follows the canvas foreground, including Dark Mode.
     public var color: String? = nil
     public var fill: String? = nil
+    public var textColor: String? = nil
     public init() {}
 }
 public struct FigureElement: Codable, Hashable, Identifiable, Sendable {
@@ -25,6 +27,7 @@ public struct FigureElement: Codable, Hashable, Identifiable, Sendable {
     public var position: Point
     public var size = Point(140, 70)
     public var rotation = 0
+    public var flipX: Bool? = nil; public var flipY: Bool? = nil
     public var text: String
     public var fontSize = 18.0
     public var style = FigureStyle()
@@ -36,6 +39,10 @@ public struct FigureElement: Codable, Hashable, Identifiable, Sendable {
         if kind == .triangle { size = Point(100, 90) }
         if kind == .text { size = Point(160, 40) }
         switch kind {
+        case .polarity: size = Point(40,100); self.text = text ?? "+\nV\n−"
+        case .plus: size = Point(30,30); self.text = text ?? "+"
+        case .minus: size = Point(30,30); self.text = text ?? "−"
+        case .dots: size = Point(60,25); self.text = text ?? "⋯"
         case .inputPort: size = Point(100, 40); self.text = text ?? "IN"
         case .outputPort: size = Point(100, 40); self.text = text ?? "OUT"
         case .bidirectionalPort: size = Point(120, 40); self.text = text ?? "I/O"
@@ -46,7 +53,7 @@ public struct FigureElement: Codable, Hashable, Identifiable, Sendable {
         default: break
         }
     }
-    public func world(_ p: Point) -> Point { position + p.transformed(rotation: rotation, flipX: false, flipY: false) }
+    public func world(_ p: Point) -> Point { position + p.transformed(rotation: rotation, flipX: flipX ?? false, flipY: flipY ?? false) }
     public var bounds: Bounds { Bounds([world(Point(-size.x / 2, -size.y / 2)), world(Point(size.x / 2, -size.y / 2)), world(Point(size.x / 2, size.y / 2)), world(Point(-size.x / 2, size.y / 2))]) }
     public var anchors: [Pin] { [Pin("left", Point(-size.x / 2, 0)), Pin("right", Point(size.x / 2, 0)), Pin("top", Point(0, -size.y / 2)), Pin("bottom", Point(0, size.y / 2))] }
     public func anchor(_ name: String) -> Point? { anchors.first { $0.name == name }.map { world($0.offset) } }
@@ -54,7 +61,7 @@ public struct FigureElement: Codable, Hashable, Identifiable, Sendable {
         let w = size.x / 2, h = size.y / 2
         let local: [Point]
         switch kind {
-        case .text: return []
+        case .text, .polarity, .plus, .minus, .dots: return []
         case .rectangle: local = [Point(-w, -h), Point(w, -h), Point(w, h), Point(-w, h)]
         case .diamond: local = [Point(0, -h), Point(w, 0), Point(0, h), Point(-w, 0)]
         case .triangle: local = [Point(-w, -h), Point(w, 0), Point(-w, h)]
@@ -124,17 +131,9 @@ public extension Circuit {
     }
     var figureLayers: [VectorLayer] {
         var layers: [VectorLayer] = []; var connectors: [VectorLayer] = []
-        func academic(_ style: FigureStyle) -> FigureStyle {
-            var style = style
-            if mode == .publication {
-                style.color = nil
-                if let fill = style.fill, let rgb = UInt32(fill, radix: 16) { let gray = Int(0.299 * Double((rgb >> 16) & 255) + 0.587 * Double((rgb >> 8) & 255) + 0.114 * Double(rgb & 255)); style.fill = String(format: "%02x%02x%02x", gray, gray, gray) }
-            }
-            return style
-        }
         for connector in figureConnectors {
             let points = resolvedPoints(connector); guard points.count > 1 else { continue }
-            var layer = VectorLayer(); layer.style = academic(connector.style); layer.primitives = [.line(points)]
+            var layer = VectorLayer(); layer.style = connector.style; layer.primitives = [.line(points)]
             func arrow(_ from: Point, _ tip: Point) -> Primitive {
                 let angle = atan2(tip.y - from.y, tip.x - from.x), size = 9.0 + layer.style.width
                 return .polygon([tip, tip - Point(cos(angle - 0.42), sin(angle - 0.42)) * size, tip - Point(cos(angle + 0.42), sin(angle + 0.42)) * size], filled: true)
@@ -151,7 +150,7 @@ public extension Circuit {
             connectors.append(layer)
         }
         for figure in figures {
-            let outline = figure.outline, style = academic(figure.style)
+            let outline = figure.outline, style = figure.style
             if !outline.isEmpty, let fill = style.fill { var background = VectorLayer(); background.style.color = fill; background.primitives = [.polygon(outline, filled: true)]; layers.append(background) }
             var layer = VectorLayer(); layer.style = style; layer.texts = figure.texts
             if !outline.isEmpty { layer.primitives = [.polygon(outline, filled: false)] }

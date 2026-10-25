@@ -1,0 +1,172 @@
+{
+  "name": "CircuitSymbols",
+  "version": "0.2",
+  "created": "2026-10-07",
+  "status": "Experimental prototype; not validated on external textbook or paper schematics.",
+  "artifact": {
+    "path": "CircuitSymbols.mlmodel",
+    "bytes": 8284326,
+    "sha256": "ab4e4ab0dccdbc8cd0b46928306844cbcd2dd562ee090a28b42323805d7e8d5e"
+  },
+  "runtime": "Core ML and Vision; no Apple Intelligence or FoundationModels dependency.",
+  "architecture": "Create ML object detector, transferLearning.objectPrint(revision: 1)",
+  "training": {
+    "iterations": 1600,
+    "batchSize": 16,
+    "datasetSeed": 20261007,
+    "classes": [
+      "resistor",
+      "capacitor",
+      "inductor",
+      "voltageSource",
+      "acVoltage",
+      "pulseSource",
+      "currentSource",
+      "diode",
+      "nmos",
+      "pmos",
+      "npn",
+      "pnp",
+      "opAmp",
+      "ground",
+      "vdd",
+      "vss"
+    ],
+    "splits": {
+      "train": {
+        "images": 900,
+        "symbols": 4920,
+        "classCounts": {
+          "resistor": 285,
+          "capacitor": 311,
+          "inductor": 297,
+          "voltageSource": 324,
+          "acVoltage": 330,
+          "pulseSource": 317,
+          "currentSource": 320,
+          "diode": 321,
+          "nmos": 301,
+          "pmos": 294,
+          "npn": 315,
+          "pnp": 340,
+          "opAmp": 295,
+          "ground": 284,
+          "vdd": 291,
+          "vss": 295
+        }
+      },
+      "validation": {
+        "images": 180,
+        "symbols": 969,
+        "classCounts": {
+          "resistor": 64,
+          "capacitor": 54,
+          "inductor": 58,
+          "voltageSource": 47,
+          "acVoltage": 67,
+          "pulseSource": 64,
+          "currentSource": 65,
+          "diode": 69,
+          "nmos": 53,
+          "pmos": 72,
+          "npn": 55,
+          "pnp": 56,
+          "opAmp": 73,
+          "ground": 52,
+          "vdd": 66,
+          "vss": 54
+        }
+      },
+      "test": {
+        "images": 180,
+        "symbols": 971,
+        "classCounts": {
+          "resistor": 54,
+          "capacitor": 63,
+          "inductor": 69,
+          "voltageSource": 60,
+          "acVoltage": 63,
+          "pulseSource": 65,
+          "currentSource": 54,
+          "diode": 68,
+          "nmos": 65,
+          "pmos": 43,
+          "npn": 61,
+          "pnp": 65,
+          "opAmp": 68,
+          "ground": 73,
+          "vdd": 45,
+          "vss": 55
+        }
+      },
+      "templates": {
+        "images": 5,
+        "symbols": 39,
+        "classCounts": {
+          "resistor": 4,
+          "capacitor": 2,
+          "inductor": 0,
+          "voltageSource": 2,
+          "acVoltage": 2,
+          "pulseSource": 1,
+          "currentSource": 2,
+          "diode": 0,
+          "nmos": 6,
+          "pmos": 1,
+          "npn": 0,
+          "pnp": 0,
+          "opAmp": 0,
+          "ground": 12,
+          "vdd": 7,
+          "vss": 0
+        }
+      }
+    },
+    "dataSource": "Synthetic images rendered from Circuit Studio native vector symbols. Randomized themes, rotations, flips, scales, labels, pin stubs and connecting wires. Templates are a separate holdout.",
+    "dataProvenance": "Original project symbols and renderer (MIT project license); no external textbook images used. The pretrained objectPrint base is provided by Apple Create ML."
+  },
+  "postprocessing": {
+    "confidenceThreshold": 0.35,
+    "crossClassNMSIoUThreshold": 0.45,
+    "evaluationMatchingIoUThreshold": 0.5
+  },
+  "evaluation": {
+    "syntheticTest": {
+      "confidenceThreshold": 0.3499999940395355,
+      "dataScope": "Synthetic native symbols; does not measure textbook/paper generalization.",
+      "falseNegatives": 254,
+      "falsePositives": 302,
+      "iouThreshold": 0.5,
+      "meanLatencyMillisecondsOnThisMac": 14.705499675538805,
+      "precision": 0.703631010794897,
+      "recall": 0.7384140061791967,
+      "truePositives": 717,
+      "imageCount": 180,
+      "expectedSymbols": 971
+    },
+    "nativeTemplates": {
+      "confidenceThreshold": 0.3499999940395355,
+      "dataScope": "Synthetic native symbols; does not measure textbook/paper generalization.",
+      "falseNegatives": 14,
+      "falsePositives": 18,
+      "iouThreshold": 0.5,
+      "meanLatencyMillisecondsOnThisMac": 22.522974014282227,
+      "precision": 0.5813953488372093,
+      "recall": 0.6410256410256411,
+      "truePositives": 25,
+      "imageCount": 5,
+      "expectedSymbols": 39
+    },
+    "latencyScope": "Inference only on the development Mac, including first inference. Does not include OCR or image preparation. Phone latency, peak memory, and energy use have not been measured."
+  },
+  "intendedUse": "Offline read-only candidate symbol boxes for clear cropped circuit schematics. OCR is a separate Vision request, not part of this model.",
+  "limitations": [
+    "No wire topology or junction/crossing reconstruction.",
+    "No inferred pin roles, polarity, orientation or component-value associations.",
+    "No conversion into an editable circuit or simulation-ready netlist.",
+    "Confidence values are not calibrated probabilities of correctness.",
+    "Synthetic evaluation does not establish accuracy for textbooks, papers, photos or hand drawings.",
+    "External drawing conventions may differ; expect false detections and missed symbols."
+  ],
+  "reproduce": "See README.md and scripts/circuit_vision.py for dataset, training and evaluation commands."
+}

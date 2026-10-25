@@ -1,0 +1,1 @@
+Metropolis by Chris Simpson. Unmodified font files from typehaus/metropolis, commit 28cdaaaad51bb3d4623e17f18413a1584659fb2f. Distributed under the Unlicense (LICENSE.txt). The same font family is used by Analog Canvas.

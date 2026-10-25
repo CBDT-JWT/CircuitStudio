@@ -1,0 +1,7 @@
+# Keep the byte-identical, separately licensed model/font/renderer dependencies.
+# Their own formatting includes trailing spaces in original coefficient cards.
+Engineering/PDK/** -whitespace
+Resources/EngineeringEditor/pdk/** -whitespace
+Engineering/Markdown/** -whitespace
+Resources/EngineeringEditor/markdown/** -whitespace
+Resources/Models/** -whitespace

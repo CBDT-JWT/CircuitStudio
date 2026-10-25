@@ -40,6 +40,23 @@ public enum EmbeddedSpice {
     /// Runs off the UI thread. No process launching, network access or external executable is used.
     public static func run(_ circuit: Circuit, timeout: TimeInterval = 20) throws -> SimulationResult {
         try SPICENetlist.validate(circuit)
+        return try execute(try SPICENetlist.generate(circuit),settings:circuit.simulation,operatingDevices:circuit.components.filter { $0.kind.isMOS }.map(\.name),timeout:timeout)
+    }
+
+    public static func run(netlist:String,settings:SimulationSettings,models:String="",supplies:[String:String]=[:],timeout:TimeInterval=20)throws->SimulationResult {
+        let deck=try EngineeringSimulation.deck(netlist,settings:settings,models:models,supplies:supplies)
+        var depth=0,devices:[String]=[]
+        if settings.analysis == .op {
+            for line in netlist.components(separatedBy:.newlines) {
+                let fields=line.split(whereSeparator:\.isWhitespace);guard let head=fields.first else{continue}
+                if head.lowercased()==".subckt" {depth+=1;continue}
+                if head.lowercased()==".ends" {depth=max(0,depth-1);continue}
+                if depth==0,head.lowercased().hasPrefix("m"),fields.count>=6 {devices.append(String(head))}
+            }
+        }
+        return try execute(deck,settings:settings,operatingDevices:devices,timeout:timeout)
+    }
+    private static func execute(_ netlist:String,settings:SimulationSettings,operatingDevices:[String],timeout:TimeInterval)throws->SimulationResult {
         session.runLock.lock(); defer { session.runLock.unlock() }
         guard !session.unusable else { throw CircuitError.message("The simulation engine could not stop its previous analysis. Reopen the app before running another simulation.") }
         if !session.initialized {
@@ -50,7 +67,6 @@ public enum EmbeddedSpice {
             _ = command("set nomoremode")
         }
         _ = command("destroy all"); _ = command("remcirc"); session.clear()
-        let netlist = try SPICENetlist.generate(circuit)
         let deck = netlist.split(separator: "\n", omittingEmptySubsequences: false).map { strdup(String($0)) }
         defer { deck.forEach { free($0) } }
         guard deck.allSatisfy({ $0 != nil }) else { throw CircuitError.message("Not enough memory to prepare this circuit.") }
@@ -58,9 +74,9 @@ public enum EmbeddedSpice {
         let status = pointers.withUnsafeMutableBufferPointer { ngSpice_Circ($0.baseAddress) }
         guard status == 0, session.failure == nil else { throw simulationError(session.log) }
         var save = "save all"
-        if circuit.simulation.analysis == .op {
-            for component in circuit.components where component.kind.isMOS {
-                for key in ["id", "gm", "gds", "vgs", "vds", "vdsat"] { save += " @\(component.name.lowercased())[\(key)]" }
+        if settings.analysis == .op {
+            for device in operatingDevices {
+                for key in ["id", "gm", "gds", "vgs", "vds", "vdsat"] { save += " @\(device.lowercased())[\(key)]" }
             }
         }
         _ = command(save)
@@ -75,7 +91,7 @@ public enum EmbeddedSpice {
         // Finish the shared library's background-run state before reading or loading another circuit.
         _ = command("bg_halt")
         guard session.failure == nil else { throw simulationError(session.log) }
-        return try readResult(analysis: circuit.simulation.analysis)
+        return try readResult(analysis: settings.analysis)
     }
 
     @discardableResult private static func command(_ text: String) -> Int32 {
@@ -88,7 +104,12 @@ public enum EmbeddedSpice {
         var vectors: [(String, Int32, [Complex])] = []
         var index = 0, total = 0
         while let name = names[index] {
-            guard index < 10_000, let pointer = ngGet_Vec_Info(name) else { throw CircuitError.message("SPICE returned an unreadable waveform.") }
+            guard index < 10_000 else {throw CircuitError.message("SPICE returned too many waveforms.")}
+            let vectorName=String(cString:name)
+            // ngspice 47 lists T-line bookkeeping names that ngGet_Vec_Info
+            // cannot expose. They are not saved voltage/current waveforms.
+            if vectorName.range(of:#"(?i)^t\..+#(?:int|i)[12]$"#,options:.regularExpression) != nil {index+=1;continue}
+            guard let pointer = ngGet_Vec_Info(name) else { throw CircuitError.message("SPICE returned an unreadable waveform: "+vectorName) }
             let info = pointer.pointee, count = Int(info.v_length)
             total += count
             guard count > 0, count <= 500_000, total <= 8_000_000 else { throw CircuitError.message("This result is too large to display. Reduce the analysis range or number of probes.") }
@@ -126,7 +147,7 @@ public enum EmbeddedSpice {
 
     private static func simulationError(_ log: String) -> CircuitError {
         let text = log.lowercased()
-        if text.contains("unknown model") || text.contains("could not find a valid modelname") || text.contains("model not found") {
+        if text.contains("unknown subckt") || text.contains("unknown subcircuit") || text.contains("unknown model") || text.contains("could not find a valid modelname") || text.contains("model not found") {
             return .message("A device model is missing or unsupported. Import its .model definition in the model library.")
         }
         if text.contains("singular") || text.contains("no dc path") {

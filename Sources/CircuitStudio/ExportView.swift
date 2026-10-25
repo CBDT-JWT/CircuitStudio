@@ -17,7 +17,34 @@ enum ExportFormat: String, CaseIterable, Identifiable {
         UIPasteboard.general.setItems([[type.identifier: data]])
         #endif
     }
-    static func copySelection(_ store: EditorStore) { guard let data = store.selectionData() else { return }; copy(data, type: UTType(exportedAs: "com.circuitstudio.selection")) }
+    static func copySelection(_ store: EditorStore) {
+        guard let data = store.selectionData() else { return }
+        do {
+            let circuit = store.circuit.selected(store.selection)
+            let png = try CircuitExport.raster(circuit, scale: 3, transparent: true)
+            let pdf = try CircuitExport.pdf(circuit)
+            #if os(macOS)
+            let item = NSPasteboardItem()
+            item.setData(data, forType: NSPasteboard.PasteboardType("com.circuitstudio.selection"))
+            item.setData(png, forType: .png); item.setData(pdf, forType: .pdf)
+            NSPasteboard.general.clearContents(); NSPasteboard.general.writeObjects([item])
+            #else
+            UIPasteboard.general.setItems([["com.circuitstudio.selection":data,UTType.png.identifier:png,UTType.pdf.identifier:pdf]])
+            #endif
+            store.toast = "Selection copied · PNG ready to paste"
+        } catch { store.error = error.localizedDescription }
+    }
+    static func cutSelection(_ store: EditorStore) {
+        guard !store.selection.isEmpty else { return }
+        store.error = nil; copySelection(store); if store.error == nil { store.deleteSelection() }
+    }
+    static func selectionData() -> Data? {
+        #if os(macOS)
+        NSPasteboard.general.data(forType: NSPasteboard.PasteboardType("com.circuitstudio.selection"))
+        #else
+        UIPasteboard.general.data(forPasteboardType: "com.circuitstudio.selection")
+        #endif
+    }
     static func pasteSelection(_ store: EditorStore) {
         #if os(macOS)
         store.paste(NSPasteboard.general.data(forType: NSPasteboard.PasteboardType("com.circuitstudio.selection")))
@@ -26,11 +53,11 @@ enum ExportFormat: String, CaseIterable, Identifiable {
         #endif
     }
     static func copyAs(_ format: ExportFormat, store: EditorStore) {
-        do { let data = try exportData(format, circuit: store.circuit, scale: 2, transparent: true); copy(data, type: format.type); store.toast = "Copied as \(format.rawValue)" } catch { store.error = error.localizedDescription }
+        do { let data = try exportData(format, circuit: store.selection.isEmpty ? store.circuit : store.circuit.selected(store.selection), scale: 3, transparent: true); copy(data, type: format.type); store.toast = "Copied as \(format.rawValue)" } catch { store.error = error.localizedDescription }
     }
     static func exportData(_ format: ExportFormat, circuit: Circuit, scale: Double, transparent: Bool) throws -> Data {
         switch format {
-        case .pdf: return try CircuitExport.pdf(circuit)
+        case .pdf: return try CircuitExport.pdf(circuit, transparent: transparent)
         case .svg: return Data(CircuitExport.svg(circuit, transparent: transparent).utf8)
         case .png, .jpeg, .tiff: return try CircuitExport.raster(circuit, scale: scale, transparent: transparent, type: format.type)
         case .circuitikz: return Data(try CircuitikZ.export(circuit).utf8)
@@ -47,10 +74,12 @@ struct ExportView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 20) {
                 CircuitThumbnail(circuit: store.circuit).frame(height: 170).frame(maxWidth: .infinity).background(.quaternary.opacity(0.25), in: RoundedRectangle(cornerRadius: 14))
-                Picker("Format", selection: $format) { ForEach(ExportFormat.allCases.filter { store.supportsSimulation || $0 != .spice }) { Text($0.rawValue).tag($0) } }
-                Text(format.caption).font(.caption).foregroundStyle(.secondary)
+                Text(String(format: NSLocalizedString("Figure width: %.1f mm", comment: ""), store.circuit.figureWidthMM)).font(.caption)
+                if let size=store.circuit.smallestPrintedFont, size < 7 { Text(String(format:NSLocalizedString("Smallest label: %.1f pt. Increase label size or figure width for print.",comment:""),size)).font(.caption).foregroundStyle(.orange) }
+                Picker("Format", selection: $format) { ForEach(ExportFormat.allCases.filter { store.supportsSimulation || $0 != .spice }) { Text(LocalizedStringKey($0.rawValue)).tag($0) } }
+                Text(LocalizedStringKey(format.caption)).font(.caption).foregroundStyle(.secondary)
                 if [.png, .jpeg, .tiff].contains(format) { Picker("Resolution", selection: $resolution) { ForEach(["1×", "2×", "4×", "Custom DPI"], id: \.self) { Text($0) } }.pickerStyle(.segmented); if resolution == "Custom DPI" { TextField("DPI", text: $customDPI).textFieldStyle(.roundedBorder) } }
-                if [.png, .tiff, .svg].contains(format) { Toggle("Transparent background", isOn: $transparent) }
+                if [.png, .tiff, .svg, .pdf].contains(format) { Toggle("Transparent background", isOn: $transparent) }
                 if format == .circuitikz || format == .spice { ScrollView { Text(textPreview).font(.system(size: 10, design: .monospaced)).textSelection(.enabled).frame(maxWidth: .infinity, alignment: .leading) }.frame(height: 90).padding(10).background(.quaternary.opacity(0.3), in: RoundedRectangle(cornerRadius: 8)) }
                 HStack { Button { do { let data = try makeData(); StudioClipboard.copy(data, type: format.type); store.toast = "Copied as \(format.rawValue)"; store.showExport = false } catch { store.error = error.localizedDescription } } label: { Label("Copy \(format.rawValue)", systemImage: "doc.on.doc") }; Spacer(); if let shareURL { ShareLink(item: shareURL) { Label("Share", systemImage: "square.and.arrow.up") } }; Button("Save file…") { do { file = ExportFile(try makeData()); exporting = true } catch { store.error = error.localizedDescription } }.buttonStyle(.borderedProminent) }.controlSize(.large)
             }.padding(24).navigationTitle("Export circuit").toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { store.showExport = false } } }

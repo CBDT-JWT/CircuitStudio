@@ -29,10 +29,11 @@ public struct Connectivity: Sendable {
             if touched > 1 && (circuit.junctions.contains(p) || degree[p, default: 0] >= 3 || segments.contains(where: { p != $0.0 && p != $0.1 && distanceToSegment(p, $0.0, $0.1) < 0.01 })) { connectionDots.append(p) }
         }
         var named: [(String, Int)] = circuit.labels.filter(\.isNet).map { (MathLabel.netName($0.text), index($0.position)) }
-        for c in circuit.components where c.kind.isConnection {
+        for c in circuit.components where c.kind.isConnection && c.kind != .noConnect {
             let name = c.kind == .ground ? "0" : MathLabel.netName(c.name)
             named.append((name, index(c.position)))
         }
+        for rail in circuit.wires { if let name=rail.powerNet,let p=rail.points.first { named.append((MathLabel.netName(name),index(p))) } }
         var firstNamed: [String: Int] = [:]
         for (name, i) in named where !name.isEmpty { if let first = firstNamed[name] { union(first, i) } else { firstNamed[name] = i } }
         var groups: [Int: [Int]] = [:]

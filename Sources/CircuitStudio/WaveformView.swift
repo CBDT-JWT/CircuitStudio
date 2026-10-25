@@ -39,7 +39,7 @@ struct WaveformView: View {
             } else {
                 HStack(spacing: 20) { ForEach(Array(traces.enumerated()), id: \.element.id) { index, trace in Button { if hidden.contains(trace.name) { hidden.remove(trace.name) } else { hidden.insert(trace.name) } } label: { HStack(spacing: 6) { Circle().fill(colors[index % colors.count]).frame(width: 6, height: 6); Text(trace.name).font(.system(size: 11, weight: .medium, design: .monospaced)); if let value = cursorValue(trace) { Text(value).font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary) } }.opacity(hidden.contains(trace.name) ? 0.35 : 1) }.buttonStyle(.plain) }; Spacer() }.padding(.horizontal, 24).padding(.bottom, 8)
                 if separate { VStack(spacing: 6) { ForEach(active) { trace in plot([trace]) } } } else { plot(active) }
-                HStack { Text(result.axisLabel); Spacer(); if let cursor { Text("Cursor \(EngineeringUnits.format(result.analysis == .ac ? pow(10, cursor) : cursor, unit: result.analysis == .ac ? "Hz" : result.analysis == .tran ? "s" : "V"))") }; if delta, let cursor, let secondCursor { Text("Δ \(EngineeringUnits.format(abs((result.analysis == .ac ? pow(10, cursor) : cursor) - (result.analysis == .ac ? pow(10, secondCursor) : secondCursor))))") }; if zoom > 1 { Slider(value: $pan, in: 0...max(0.001, 1 - 1 / zoom)).frame(width: 110).help("Pan waveform") } }.font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).padding(.horizontal, 24).padding(.vertical, 7)
+                HStack { Text(LocalizedStringKey(result.axisLabel)); Spacer(); if let cursor { Text("Cursor \(EngineeringUnits.format(result.analysis == .ac ? pow(10, cursor) : cursor, unit: result.analysis == .ac ? "Hz" : result.analysis == .tran ? "s" : "V"))") }; if delta, let cursor, let secondCursor { Text("Δ \(EngineeringUnits.format(abs((result.analysis == .ac ? pow(10, cursor) : cursor) - (result.analysis == .ac ? pow(10, secondCursor) : secondCursor))))") }; if zoom > 1 { Slider(value: $pan, in: 0...max(0.001, 1 - 1 / zoom)).frame(width: 110).help("Pan waveform") } }.font(.system(size: 10, design: .monospaced)).foregroundStyle(.secondary).padding(.horizontal, 24).padding(.vertical, 7)
             }
         }.background(.background)
     }
@@ -47,7 +47,7 @@ struct WaveformView: View {
         HStack(spacing: 10) {
             Image(systemName: "waveform.path").foregroundStyle(StudioStyle.accent)
             VStack(alignment: .leading, spacing: 3) {
-                Text(result.analysis == .ac ? "Frequency response" : result.analysis.rawValue).font(.system(size: 13, weight: .semibold)).lineLimit(1)
+                Text(LocalizedStringKey(result.analysis == .ac ? "Frequency response" : result.analysis.rawValue)).font(.system(size: 13, weight: .semibold)).lineLimit(1)
                 Text(result.engine).font(.system(size: 10)).foregroundStyle(.secondary).lineLimit(1)
             }
         }

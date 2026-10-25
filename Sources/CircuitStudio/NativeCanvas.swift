@@ -3,7 +3,7 @@ import SwiftUI
 @MainActor enum CanvasPainter {
     static func draw(_ store: EditorStore, scene: VectorScene, context: CGContext, size: CGSize, dark: Bool) {
         let bg = dark ? CGColor(red: 0.09, green: 0.10, blue: 0.11, alpha: 1) : CGColor(red: 0.985, green: 0.986, blue: 0.98, alpha: 1)
-        context.setFillColor(bg); context.fill(CGRect(origin: .zero, size: size))
+        context.setFillColor(CircuitRenderer.color(store.circuit.appearance?.background) ?? bg); context.fill(CGRect(origin: .zero, size: size))
         if store.showGrid && store.circuit.mode != .publication {
             let step = max(10, ceil(16 / store.zoom / 10) * 10), visibleA = store.world(.zero), visibleB = store.world(Point(size.width, size.height))
             context.setFillColor(CGColor(gray: dark ? 0.28 : 0.80, alpha: 0.65))
@@ -13,7 +13,7 @@ import SwiftUI
         }
         context.saveGState(); context.translateBy(x: store.offset.x, y: store.offset.y); context.scaleBy(x: store.zoom, y: store.zoom)
         CircuitRenderer.draw(scene, in: context, dark: dark)
-        if store.circuit.mode == .presentation {
+        if store.circuit.mode == .presentation && store.circuit.appearance == nil {
             context.setStrokeColor(CGColor(red: 0.09, green: 0.48, blue: 0.78, alpha: 1)); context.setLineWidth(2)
             let topology = Connectivity(store.circuit)
             for wire in store.circuit.wires { if let p = wire.points.first, topology.nets.contains(where: { $0.name.hasPrefix("VIN") || $0.name.hasPrefix("VOUT") ? $0.points.contains(p) : false }) { CircuitRenderer.stroke(store.circuit.resolvedPoints(wire), in: context) } }
@@ -25,7 +25,10 @@ import SwiftUI
             context.setFillColor(CGColor(red: 0.08, green: 0.53, blue: 0.47, alpha: 0.07)); context.fill(rect); context.setFillColor(accent); context.stroke(rect)
             for pin in c.pins { let p = c.world(pin.offset); context.fillEllipse(in: CGRect(x: p.x - 3 / store.zoom, y: p.y - 3 / store.zoom, width: 6 / store.zoom, height: 6 / store.zoom)) }
         }
-        for w in store.circuit.wires where store.selection.contains(w.id) { context.setLineWidth(3 / store.zoom); CircuitRenderer.stroke(store.circuit.resolvedPoints(w), in: context) }
+        for w in store.circuit.wires where store.selection.contains(w.id) {
+            context.setLineWidth(3 / store.zoom); let ps = store.circuit.resolvedPoints(w); CircuitRenderer.stroke(ps,in:context)
+            for (a,b) in zip(ps,ps.dropFirst()) { let p = (a+b)*0.5; context.fill(CGRect(x:p.x-3/store.zoom,y:p.y-3/store.zoom,width:6/store.zoom,height:6/store.zoom)) }
+        }
         for figure in store.circuit.figures where store.selection.contains(figure.id) {
             let b = figure.bounds; context.setLineWidth(1 / store.zoom); context.stroke(CGRect(x: b.minX, y: b.minY, width: b.width, height: b.height))
             for corner in [Point(-figure.size.x / 2, -figure.size.y / 2), Point(figure.size.x / 2, -figure.size.y / 2), Point(figure.size.x / 2, figure.size.y / 2), Point(-figure.size.x / 2, figure.size.y / 2)] { let p = figure.world(corner); context.fill(CGRect(x: p.x - 4 / store.zoom, y: p.y - 4 / store.zoom, width: 8 / store.zoom, height: 8 / store.zoom)) }
@@ -37,7 +40,18 @@ import SwiftUI
         }
         for l in store.circuit.labels where store.selection.contains(l.id) { context.stroke(CGRect(x: l.position.x, y: l.position.y - 25, width: Double(l.text.count) * 8, height: 26)) }
         if let p = store.hoverTerminal { context.setLineWidth(1.5 / store.zoom); context.strokeEllipse(in: CGRect(x: p.x - 7 / store.zoom, y: p.y - 7 / store.zoom, width: 14 / store.zoom, height: 14 / store.zoom)) }
-        if !store.draftWire.isEmpty { context.setLineWidth(2 / store.zoom); context.setLineDash(phase: 0, lengths: [5 / store.zoom, 3 / store.zoom]); CircuitRenderer.stroke(store.draftWire, in: context); context.setLineDash(phase: 0, lengths: []) }
+        if !store.draftWire.isEmpty { context.setLineWidth(store.drawingPowerRail ? 6.48 : 2 / store.zoom); context.setLineDash(phase: 0, lengths: [5 / store.zoom, 3 / store.zoom]); CircuitRenderer.stroke(store.draftWire, in: context); context.setLineDash(phase: 0, lengths: []) }
+        if let p = store.placementPoint {
+            if let data = store.placementCopy, let payload = try? JSONDecoder().decode(EditorStore.SelectionPayload.self,from:data) {
+                var copy = Circuit(); copy.components = payload.components; copy.wires = payload.wires; copy.labels = payload.labels; copy.figures = payload.figures ?? []; copy.figureConnectors = payload.connectors ?? []
+                let shift = p-copy.bounds.center
+                context.saveGState(); context.setAlpha(0.45); context.translateBy(x:shift.x,y:shift.y); CircuitRenderer.draw(copy,in:context,dark:dark); context.restoreGState()
+            } else if let kind = store.insertKind,kind != .powerRail {
+                var c = Component(kind:kind,name:"",position:p); c.rotation = store.insertionRotation; c.flipX = store.insertionFlipX; c.flipY = store.insertionFlipY
+                var preview = VectorScene(); preview.primitives = Symbols.geometry(c,theme:store.circuit.theme)
+                context.saveGState(); context.setAlpha(0.5); CircuitRenderer.draw(preview,in:context,dark:dark); context.restoreGState()
+            }
+        }
         if let b = store.marquee { context.setLineWidth(1 / store.zoom); context.stroke(CGRect(x: b.minX, y: b.minY, width: b.width, height: b.height)) }
         if store.annotateOP, let result = store.simulationResult {
             for c in store.circuit.components where c.kind.isMOS { if let op = result.operatingPoints[c.name.uppercased()] {
@@ -78,29 +92,60 @@ final class MacCanvas: NSView {
     override func mouseDown(with event: NSEvent) { window?.makeFirstResponder(self); store.pointerDown(point(event), extend: event.modifierFlags.contains(.shift) || event.modifierFlags.contains(.command), duplicate: event.modifierFlags.contains(.option), pan: spaceDown, double: event.clickCount == 2); update() }
     override func mouseDragged(with event: NSEvent) { store.pointerDragged(point(event)); update() }
     override func mouseUp(with event: NSEvent) { store.pointerUp(point(event)); update() }
+    override func otherMouseDown(with event: NSEvent) { if event.buttonNumber == 2 { store.pointerDown(point(event),pan:true) } }
+    override func otherMouseDragged(with event: NSEvent) { if event.buttonNumber == 2 { store.pointerDragged(point(event)); update() } }
+    override func otherMouseUp(with event: NSEvent) { if event.buttonNumber == 2 { store.pointerUp(point(event)); update() } }
     override func mouseMoved(with event: NSEvent) { store.hover(point(event)); update() }
     override func mouseExited(with event: NSEvent) { store.hoverTerminal = nil; update() }
     override func scrollWheel(with event: NSEvent) {
-        if event.modifierFlags.contains(.command) { store.changeZoom(store.zoom * exp(Double(event.scrollingDeltaY) * 0.015), at: point(event)) }
+        if event.modifierFlags.contains(.command) || event.modifierFlags.contains(.control) { store.changeZoom(store.zoom * exp(Double(event.scrollingDeltaY) * 0.015), at: point(event)) }
         else { store.offset = store.offset + Point(Double(event.scrollingDeltaX), Double(event.scrollingDeltaY)) * (event.hasPreciseScrollingDeltas ? 1 : 12) }; update()
     }
     override func magnify(with event: NSEvent) { store.changeZoom(store.zoom * (1 + event.magnification), at: point(event)); update() }
     override func keyDown(with event: NSEvent) {
         if event.charactersIgnoringModifiers == " " { spaceDown = true; NSCursor.openHand.set(); return }
-        if event.modifierFlags.contains(.command) { super.keyDown(with: event); return }
+        let key = event.charactersIgnoringModifiers?.lowercased()
+        if event.modifierFlags.contains(.command) || event.modifierFlags.contains(.control) {
+            if key == "r" { store.transformSelection("Flip vertical"); update(); return }
+            if event.modifierFlags.contains(.control) {
+                switch key {
+                case "a": store.selection = store.circuit.objectIDs
+                case "c": StudioClipboard.copySelection(store)
+                case "x": StudioClipboard.cutSelection(store)
+                case "v": StudioClipboard.pasteSelection(store)
+                case "z": event.modifierFlags.contains(.shift) ? store.redo() : store.undo()
+                case "y": store.redo()
+                default: super.keyDown(with:event)
+                }; update(); return
+            }
+            super.keyDown(with: event); return
+        }
         switch event.keyCode {
-        case 53: store.cancel()
-        case 51, 117: store.deleteSelection()
+        case 53: store.cancel(); store.selection.removeAll()
+        case 51: if !store.draftWire.isEmpty { store.removeWireBend() } else { store.deleteSelection() }
+        case 117: store.deleteSelection()
+        case 36, 76: store.completeWire()
+        case 115: store.fit()
+        case 123: store.nudge(Point(event.modifierFlags.contains(.shift) ? -10 : -1,0))
+        case 124: store.nudge(Point(event.modifierFlags.contains(.shift) ? 10 : 1,0))
+        case 125: store.nudge(Point(0,event.modifierFlags.contains(.shift) ? 10 : 1))
+        case 126: store.nudge(Point(0,event.modifierFlags.contains(.shift) ? -10 : -1))
         default:
             switch event.charactersIgnoringModifiers?.lowercased() {
-            case "a": store.paletteQuery = ""; store.showPalette = true
+            case "a", "i": store.paletteQuery = ""; store.showPalette = true
             case "w": store.activateTool(.wire)
-            case "l": store.cancel(); store.tool = .connector
-            case "t": store.activateTool(.label)
+            case "l": store.activateTool(event.modifierFlags.contains(.shift) ? .connector : .label)
+            case "t": store.cancel(); store.insertFigureKind = .text
             case "b": store.activateTool(.probe)
-            case "r": store.transformSelection("Rotate")
+            case "r": store.transformSelection(event.modifierFlags.contains(.shift) ? "Flip horizontal" : "Rotate")
             case "h": store.transformSelection("Flip horizontal")
-            case "v": store.transformSelection("Flip vertical")
+            case "c": if store.selection.isEmpty { store.beginPickCopy() } else { StudioClipboard.copySelection(store); store.beginCopyPlacement(StudioClipboard.selectionData()) }
+            case "v": store.beginCopyPlacement(StudioClipboard.selectionData())
+            case "q": store.revealInspector()
+            case "e": store.revealInspector()
+            case "/": store.cycleWireCorner()
+            case "?": store.showShortcuts = true
+            case "n": store.cancel(); store.insertKind = .noConnect
             case "f": store.fit()
             default: super.keyDown(with: event)
             }
@@ -108,6 +153,8 @@ final class MacCanvas: NSView {
     }
     override func keyUp(with event: NSEvent) { if event.charactersIgnoringModifiers == " " { spaceDown = false; NSCursor.arrow.set() } }
     override func updateTrackingAreas() { super.updateTrackingAreas(); if let tracking { removeTrackingArea(tracking) }; let area = NSTrackingArea(rect: .zero, options: [.activeInKeyWindow, .inVisibleRect, .mouseMoved, .mouseEnteredAndExited], owner: self); addTrackingArea(area); tracking = area }
+    override func flagsChanged(with event: NSEvent) { if !event.modifierFlags.contains(.shift) { update() } }
+    override func resignFirstResponder() -> Bool { spaceDown = false; NSCursor.arrow.set(); return super.resignFirstResponder() }
     func updateAccessibility() {
         let objects = store.circuit.components.map { ($0.id, "\($0.name), \($0.kind.title), \($0.valueLabel)") } + store.circuit.figures.map { ($0.id, "\($0.kind.rawValue), \($0.text)") } + store.circuit.figureConnectors.map { ($0.id, "Figure arrow, \($0.text)") }
         setAccessibilityChildren(objects.map { id, label in let element = CanvasObjectAccessibility(); element.setAccessibilityRole(.button); element.setAccessibilityLabel(label); element.setAccessibilityParent(self); element.setAccessibilityEnabled(true); element.activate = { [weak self] in self?.store.selection = [id]; self?.store.revealInspector(); self?.update() }; return element })
@@ -153,7 +200,17 @@ final class TouchCanvas: UIView, UIGestureRecognizerDelegate {
     @objc func panned(_ gesture: UIPanGestureRecognizer) { if gesture.state == .began { panOffset = store.offset }; let p = gesture.translation(in: self); store.offset = panOffset + Point(p.x, p.y); update() }
     @objc func hovered(_ gesture: UIHoverGestureRecognizer) { let p = gesture.location(in: self); store.hover(Point(p.x, p.y)); update() }
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool { true }
-    override var keyCommands: [UIKeyCommand]? { [("a", "Add component"), ("w", "Wire"), ("l", "Figure arrow"), ("r", "Rotate"), ("h", "Flip horizontal"), ("v", "Flip vertical"), ("t", "Net label"), ("f", "Fit circuit"), (UIKeyCommand.inputEscape, "Select")].map { input, title in let c = UIKeyCommand(input: input, modifierFlags: [], action: #selector(key)); c.discoverabilityTitle = title; return c } }
-    @objc func key(_ command: UIKeyCommand) { switch command.input { case "a": store.showPalette = true; case "w": store.activateTool(.wire); case "l": store.cancel(); store.tool = .connector; case "r": store.transformSelection("Rotate"); case "h": store.transformSelection("Flip horizontal"); case "v": store.transformSelection("Flip vertical"); case "t": store.activateTool(.label); case "f": store.fit(); default: store.cancel() }; update() }
+    override func copy(_ sender: Any?) { StudioClipboard.copySelection(store) }
+    override func paste(_ sender: Any?) { StudioClipboard.pasteSelection(store); update() }
+    override func cut(_ sender: Any?) { StudioClipboard.cutSelection(store); update() }
+    override func selectAll(_ sender: Any?) { store.selection = store.circuit.objectIDs; update() }
+    override func canPerformAction(_ action: Selector, withSender sender: Any?) -> Bool {
+        if action == #selector(copy(_:)) || action == #selector(cut(_:)) { return !store.selection.isEmpty }
+        if action == #selector(paste(_:)) { return StudioClipboard.selectionData() != nil }
+        if action == #selector(selectAll(_:)) { return !store.circuit.objectIDs.isEmpty }
+        return super.canPerformAction(action,withSender:sender)
+    }
+    override var keyCommands: [UIKeyCommand]? { [("i", "Add component"), ("q", "Properties"), ("c", "Copy and place"), ("v", "Place copy"), ("a", "Add component"), ("w", "Wire"), ("l", "Figure arrow"), ("r", "Rotate"), ("h", "Flip horizontal"), ("v", "Flip vertical"), ("t", "Net label"), ("f", "Fit circuit"), (UIKeyCommand.inputEscape, "Select")].map { input, title in let c = UIKeyCommand(input: input, modifierFlags: [], action: #selector(key)); c.discoverabilityTitle = title; return c } }
+    @objc func key(_ command: UIKeyCommand) { switch command.input { case "a", "i": store.showPalette = true; case "q": store.revealInspector(); case "c": StudioClipboard.copySelection(store); store.beginCopyPlacement(StudioClipboard.selectionData()); case "w": store.activateTool(.wire); case "l": store.activateTool(.label); case "r": store.transformSelection("Rotate"); case "h": store.transformSelection("Flip horizontal"); case "v": store.beginCopyPlacement(StudioClipboard.selectionData()); case "t": store.cancel(); store.insertFigureKind = .text; case "f": store.fit(); default: store.cancel() }; update() }
 }
 #endif

@@ -1,0 +1,167 @@
+[
+  {
+    "file": "other-0.png",
+    "label": "other",
+    "source": "drafter_15/C169_D1_P1/0/text"
+  },
+  {
+    "file": "other-1.png",
+    "label": "other",
+    "source": "drafter_15/C169_D1_P1/1/text"
+  },
+  {
+    "file": "other-2.png",
+    "label": "other",
+    "source": "drafter_15/C169_D1_P1/2/text"
+  },
+  {
+    "file": "resistor-0.png",
+    "label": "resistor",
+    "source": "drafter_15/C169_D1_P1/30/resistor"
+  },
+  {
+    "file": "resistor-1.png",
+    "label": "resistor",
+    "source": "drafter_15/C169_D1_P1/32/resistor"
+  },
+  {
+    "file": "resistor-2.png",
+    "label": "resistor",
+    "source": "drafter_15/C169_D1_P1/34/resistor"
+  },
+  {
+    "file": "capacitor-0.png",
+    "label": "capacitor",
+    "source": "drafter_15/C169_D1_P1/33/capacitor.unpolarized"
+  },
+  {
+    "file": "capacitor-1.png",
+    "label": "capacitor",
+    "source": "drafter_15/C169_D1_P1/47/capacitor.unpolarized"
+  },
+  {
+    "file": "capacitor-2.png",
+    "label": "capacitor",
+    "source": "drafter_15/C169_D1_P1/48/capacitor.unpolarized"
+  },
+  {
+    "file": "polarizedCapacitor-0.png",
+    "label": "polarizedCapacitor",
+    "source": "drafter_15/C169_D1_P1/35/capacitor.polarized"
+  },
+  {
+    "file": "polarizedCapacitor-1.png",
+    "label": "polarizedCapacitor",
+    "source": "drafter_15/C169_D1_P1/99/capacitor.polarized"
+  },
+  {
+    "file": "polarizedCapacitor-2.png",
+    "label": "polarizedCapacitor",
+    "source": "drafter_15/C169_D1_P1/103/capacitor.polarized"
+  },
+  {
+    "file": "inductor-0.png",
+    "label": "inductor",
+    "source": "drafter_15/C170_D1_P1/49/inductor"
+  },
+  {
+    "file": "inductor-1.png",
+    "label": "inductor",
+    "source": "drafter_15/C170_D2_P1/56/inductor"
+  },
+  {
+    "file": "inductor-2.png",
+    "label": "inductor",
+    "source": "drafter_15/C174_D1_P1/30/inductor"
+  },
+  {
+    "file": "diode-0.png",
+    "label": "diode",
+    "source": "drafter_15/C169_D1_P1/37/diode"
+  },
+  {
+    "file": "diode-1.png",
+    "label": "diode",
+    "source": "drafter_15/C169_D1_P1/53/diode"
+  },
+  {
+    "file": "diode-2.png",
+    "label": "diode",
+    "source": "drafter_15/C169_D1_P1/65/diode"
+  },
+  {
+    "file": "ground-0.png",
+    "label": "ground",
+    "source": "drafter_15/C169_D1_P1/97/gnd"
+  },
+  {
+    "file": "ground-1.png",
+    "label": "ground",
+    "source": "drafter_15/C169_D1_P1/104/gnd"
+  },
+  {
+    "file": "ground-2.png",
+    "label": "ground",
+    "source": "drafter_15/C169_D1_P1/105/gnd"
+  },
+  {
+    "file": "voltageSource-0.png",
+    "label": "voltageSource",
+    "source": "drafter_15/C171_D1_P1/41/voltage.dc"
+  },
+  {
+    "file": "voltageSource-1.png",
+    "label": "voltageSource",
+    "source": "drafter_15/C171_D2_P1/49/voltage.dc"
+  },
+  {
+    "file": "voltageSource-2.png",
+    "label": "voltageSource",
+    "source": "drafter_16/C186_D2_P1/85/voltage.dc"
+  },
+  {
+    "file": "acVoltage-0.png",
+    "label": "acVoltage",
+    "source": "drafter_16/C182_D1_P1/77/voltage.ac"
+  },
+  {
+    "file": "acVoltage-1.png",
+    "label": "acVoltage",
+    "source": "drafter_16/C182_D2_P1/82/voltage.ac"
+  },
+  {
+    "file": "acVoltage-2.png",
+    "label": "acVoltage",
+    "source": "drafter_16/C192_D1_P1/87/voltage.ac"
+  },
+  {
+    "file": "mos-0.png",
+    "label": "mos",
+    "source": "drafter_16/C181_D1_P1/19/transistor.fet"
+  },
+  {
+    "file": "mos-1.png",
+    "label": "mos",
+    "source": "drafter_16/C181_D1_P1/33/transistor.fet"
+  },
+  {
+    "file": "mos-2.png",
+    "label": "mos",
+    "source": "drafter_16/C181_D2_P1/15/transistor.fet"
+  },
+  {
+    "file": "opAmp-0.png",
+    "label": "opAmp",
+    "source": "drafter_15/C175_D1_P1/42/operational_amplifier"
+  },
+  {
+    "file": "opAmp-1.png",
+    "label": "opAmp",
+    "source": "drafter_15/C175_D2_P1/56/operational_amplifier"
+  },
+  {
+    "file": "opAmp-2.png",
+    "label": "opAmp",
+    "source": "drafter_16/C189_D1_P1/89/operational_amplifier"
+  }
+]

@@ -12,16 +12,16 @@ public enum SPICENetlist {
             func v(_ key: String, _ fallback: String = "0") throws -> String { try EngineeringUnits.spice(c.parameters[key] ?? fallback) }
             let p = c.parameters
             switch c.kind {
-            case .resistor, .capacitor, .polarizedCapacitor, .inductor:
+            case .resistor, .capacitor, .polarizedCapacitor, .inductor, .largeInductor, .variableResistor, .variableCapacitor, .variableInductor:
                 guard try EngineeringUnits.parse(p["value"] ?? "0") > 0 else { throw CircuitError.message("\(c.name) must have a positive value.") }
                 lines.append("\(c.name) \(n("1")) \(n("2")) \(try v("value"))")
-            case .voltageSource, .acVoltage, .pulseSource:
+            case .voltageSource, .acVoltage, .pulseSource, .battery:
                 var source = "\(c.name) \(n("1")) \(n("2")) DC \(try v("value")) AC \(try v("ac"))"
                 if c.kind == .acVoltage { source += " SIN(\(try v("value")) \(try v("amplitude")) \(try v("frequency")))" }
                 if c.kind == .pulseSource { source += " PULSE(\(try v("value")) \(try v("high")) 0 1n 1n \(try v("width")) \(try v("period")))" }
                 lines.append(source)
             case .currentSource: lines.append("\(c.name) \(n("1")) \(n("2")) DC \(try v("value"))")
-            case .nmos, .pmos:
+            case .nmos, .pmos, .depletionNMOS, .depletionPMOS, .ndmos, .pdmos:
                 let model = try modelName(p["model"] ?? c.kind.rawValue)
                 for key in ["W", "L", "M", "NF"] { guard try EngineeringUnits.parse(p[key] ?? "0") > 0 else { throw CircuitError.message("\(c.name): \(key) must be positive.") } }
                 // Level-1 models have no NF instance parameter; represent fingers through M.
@@ -30,11 +30,17 @@ public enum SPICENetlist {
             case .npn, .pnp: lines.append("\(c.name) \(n("C")) \(n("B")) \(n("E")) \(try modelName(p["model"] ?? "NPN"))")
             case .diode, .zener, .led: lines.append("\(c.name) \(n("1")) \(n("2")) \(try modelName(p["model"] ?? "DDEFAULT"))")
             case .opAmp: lines.append("\(c.name) \(n("OUT")) 0 \(n("+")) \(n("-")) \(try v("gain", "100k"))")
-            default: break
+            default: lines += try extendedLines(c,topology:topology)
             }
         }
+        var reserved = Set(circuit.components.map { $0.name.uppercased() })
+        for supply in try circuit.automaticSupplies(topology:topology) {
+            var reference = "V_CSGLOBAL_"+supply.name, suffix=1
+            while reserved.contains(reference.uppercased()) { reference="V_CSGLOBAL_"+supply.name+"_\(suffix)"; suffix += 1 }
+            reserved.insert(reference.uppercased()); lines.append("\(reference) \(supply.name) 0 DC \(supply.value)")
+        }
         let library = try validatedModels(circuit.modelLibrary)
-        let defaults = ["NMOS": ".model NMOS NMOS (LEVEL=1 VTO=0.45 KP=120u LAMBDA=0.04)", "PMOS": ".model PMOS PMOS (LEVEL=1 VTO=-0.45 KP=60u LAMBDA=0.04)", "NPN": ".model NPN NPN (IS=1e-15 BF=100)", "PNP": ".model PNP PNP (IS=1e-15 BF=100)", "DDEFAULT": ".model DDEFAULT D (IS=1e-14 N=1)"]
+        let defaults = ["DNMOS": ".model DNMOS NMOS (LEVEL=1 VTO=-0.5 KP=120u)", "DPMOS": ".model DPMOS PMOS (LEVEL=1 VTO=0.5 KP=60u)","NMOS": ".model NMOS NMOS (LEVEL=1 VTO=0.45 KP=120u LAMBDA=0.04)", "PMOS": ".model PMOS PMOS (LEVEL=1 VTO=-0.45 KP=60u LAMBDA=0.04)", "NPN": ".model NPN NPN (IS=1e-15 BF=100)", "PNP": ".model PNP PNP (IS=1e-15 BF=100)", "DDEFAULT": ".model DDEFAULT D (IS=1e-14 N=1)"]
         for key in defaults.keys.sorted() where library.range(of: "(?im)^\\s*\\.model\\s+\(key)\\s", options: .regularExpression) == nil { lines.append(defaults[key]!) }
         if !library.isEmpty { lines.append(library) }
         if analysis { lines.append(try directive(circuit.simulation)) }
@@ -42,12 +48,13 @@ public enum SPICENetlist {
     }
     public static func validate(_ circuit: Circuit) throws {
         guard !circuit.components.isEmpty else { throw CircuitError.message("Add components to the canvas before running a simulation.") }
-        guard circuit.components.contains(where: { $0.kind == .ground }) else { throw CircuitError.message("Add a ground reference to your circuit.") }
         let topology = Connectivity(circuit)
+        let supplies = try circuit.automaticSupplies(topology:topology)
+        guard circuit.components.contains(where: { $0.kind == .ground }) || !supplies.isEmpty else { throw CircuitError.message("Add a ground reference to your circuit.") }
         if let conflict = topology.conflictingLabels.first { throw CircuitError.message("Net labels \(conflict.joined(separator: ", ")) share the same wire. Rename or disconnect them.") }
         for net in topology.nets where net.name != "0" {
             let active = net.terminals.filter { ref in circuit.components.first { $0.id == ref.componentID }.map { !$0.kind.isConnection } ?? false }
-            if active.count == 1 { throw CircuitError.message("Node \(net.name) is floating. Connect it to another component or a ground reference.") }
+            if active.count == 1 && !supplies.contains(where:{ $0.name == net.name }) && !net.points.contains(where: { p in circuit.components.contains { $0.kind == .noConnect && $0.position.distance(to:p)<0.01 } }) { throw CircuitError.message("Node \(net.name) is floating. Connect it to another component or a ground reference.") }
         }
         _ = try generate(circuit)
     }
@@ -63,9 +70,9 @@ public enum SPICENetlist {
             guard stop > start, step > 0, (stop - start) / step <= 100_000, s.source.range(of: #"^[VI][A-Za-z0-9_]+$"#, options: .regularExpression) != nil else { throw CircuitError.message("Check the DC source and sweep range; use at most 100,000 steps.") }
             return ".dc \(s.source) \(start) \(stop) \(step)"
         case .tran:
-            let step = try EngineeringUnits.parse(s.timeStep), duration = try EngineeringUnits.parse(s.duration)
-            guard step > 0, duration > step, duration / step <= 100_000 else { throw CircuitError.message("Transient analysis needs a positive time step and at most 100,000 steps.") }
-            return ".tran \(step) \(duration)"
+            let step = try EngineeringUnits.parse(s.timeStep), duration = try EngineeringUnits.parse(s.duration), start=try EngineeringUnits.parse(s.startSaving ?? "0")
+            guard step > 0, start>=0, duration > start+step, (duration-start) / step <= 100_000 else { throw CircuitError.message("Transient analysis needs a positive time step and at most 100,000 steps.") }
+            return ".tran \(step) \(duration)"+(start>0 ? " \(start)":"")
         }
     }
     static func modelName(_ text: String) throws -> String {

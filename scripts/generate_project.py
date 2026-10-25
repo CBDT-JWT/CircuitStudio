@@ -17,12 +17,21 @@ for file in sorted(root.glob('Sources/**/*.swift')):
 resources = []
 for name, file_type, path in [
     ('assets', 'folder.assetcatalog', 'Resources/Assets.xcassets'),
+    ('schematic-fonts', 'folder', 'Sources/CircuitCore/Resources/Fonts'),
+    ('zh-Hans', 'folder', 'Resources/zh-Hans.lproj'),
+    ('en', 'folder', 'Resources/en.lproj'),
+    ('engineering-editor', 'folder', 'Resources/EngineeringEditor'),
     ('license', 'text', 'Resources/ngspice-COPYING.txt'),
     ('privacy', 'text.xml', 'Resources/PrivacyInfo.xcprivacy'),
     ('sparkle-license', 'text', 'Resources/Sparkle-LICENSE.txt'),
     ('application-license', 'text', 'LICENSE'),
+    ('handwriting-data-license', 'text', 'Resources/Models/Handwriting/CGHD-LICENSE.txt'),
+    ('handwriting-pretraining-license', 'text', 'Resources/Models/Handwriting/TorchVision-LICENSE.txt'),
 ]:
     resources.append(obj(name, f'isa = PBXFileReference; lastKnownFileType = {file_type}; path = {quote(path)}; sourceTree = SOURCE_ROOT;'))
+for model in sorted(root.glob('Resources/Models/*.mlmodel')):
+    path = model.relative_to(root).as_posix()
+    resources.append(obj('model:' + path, f'isa = PBXFileReference; lastKnownFileType = file.mlmodel; path = {quote(path)}; sourceTree = SOURCE_ROOT;'))
 spice = obj('spice', 'isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Vendor/ngspice/NgSpice.xcframework; sourceTree = SOURCE_ROOT;')
 sparkle = obj('sparkle', 'isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Vendor/Sparkle/Sparkle.framework; sourceTree = SOURCE_ROOT;')
 release_config = obj('release-config', 'isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release/Release.xcconfig; sourceTree = SOURCE_ROOT;')
@@ -79,7 +88,7 @@ products_group = obj('products', f'isa = PBXGroup; children = ({",".join(product
 group = obj('main', f'isa = PBXGroup; children = ({",".join(source_refs + resources + [spice, sparkle, release_config, entitlement, products_group])}); sourceTree = "<group>";')
 pconfigs = [obj('project:' + name, f'isa = XCBuildConfiguration; buildSettings = {{CLANG_ENABLE_MODULES = YES;}}; name = {name};') for name in ['Debug', 'Release']]
 pcl = obj('project:configs', f'isa = XCConfigurationList; buildConfigurations = ({",".join(pconfigs)}); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;')
-project = obj('project', f'isa = PBXProject; attributes = {{LastUpgradeCheck = 2700; BuildIndependentTargetsInParallel = YES;}}; buildConfigurationList = {pcl}; compatibilityVersion = "Xcode 16.0"; developmentRegion = en; knownRegions = (en,Base); mainGroup = {group}; productRefGroup = {products_group}; projectDirPath = ""; projectRoot = ""; targets = ({",".join(targets)});')
+project = obj('project', f'isa = PBXProject; attributes = {{LastUpgradeCheck = 2700; BuildIndependentTargetsInParallel = YES;}}; buildConfigurationList = {pcl}; compatibilityVersion = "Xcode 16.0"; developmentRegion = en; knownRegions = (en,"zh-Hans",Base); mainGroup = {group}; productRefGroup = {products_group}; projectDirPath = ""; projectRoot = ""; targets = ({",".join(targets)});')
 directory = root / 'CircuitStudio.xcodeproj'; directory.mkdir(exist_ok=True)
 (directory / 'project.pbxproj').write_text('// !$*UTF8*$!\n{ archiveVersion = 1; classes = {}; objectVersion = 60; objects = {\n' + '\n'.join(objects) + f'\n}}; rootObject = {project}; }}\n')
 schemedir = directory / 'xcshareddata/xcschemes'; schemedir.mkdir(parents=True, exist_ok=True)

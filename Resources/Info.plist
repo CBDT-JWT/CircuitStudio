@@ -95,5 +95,9 @@
 			</dict>
 		</dict>
 	</array>
+
+	<key>CircuitAIServiceURL</key><string>$(CIRCUIT_AI_SERVICE_URL)</string>
+	<key>CircuitAIProductIDs</key><array><string>$(CIRCUIT_AI_MONTHLY_PRODUCT_ID)</string></array>
+	<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
 </dict>
 </plist>

@@ -1,0 +1,741 @@
+{
+  "name": "GlobalFoundries GF180MCU",
+  "technology": "180nm 3.3V MOS",
+  "corners": [
+    "TT",
+    "FF",
+    "SS",
+    "FS",
+    "SF"
+  ],
+  "modelType": "BSIM4 level 54",
+  "repository": "https://github.com/google/globalfoundries-pdk-libs-gf180mcu_fd_pr",
+  "commit": "9f992d5a9186d1f7820c58f039c484ad35b2edea",
+  "sourceFile": "models/ngspice/sm141064.ngspice",
+  "sourceSHA256": "73fc67d38747d95ce03f3c2ba5f0a25c98f56a293363a9df4c971a3a28a3dcda",
+  "designSourceSHA256": "8d9721a5bf8f079d3fddbd03339af9a0c84d4feb06db8e06465fbd02c7500508",
+  "license": "Apache-2.0",
+  "upstreamStatus": "Experimental preview; not production signoff",
+  "transformations": [
+    "Select exact 3.3V NMOS/PMOS model cards for each official corner",
+    "Select upstream 3.3V noise parameters and fnoicor=0",
+    "Normalize CRLF to LF"
+  ],
+  "packets": [
+    {
+      "id": "gf180-tt",
+      "name": "3.3V NMOS / PMOS",
+      "process": "GF180MCU",
+      "corner": "TT",
+      "path": "GF180MCU/gf180mcu-3p3-tt.spice",
+      "notice": "GlobalFoundries \u5b98\u65b9 180nm\u30013.3V MOS\u3001TT \u5de5\u827a\u89d2\uff1bBSIM4 level 54\uff0c\u6a21\u578b\u7cfb\u6570\u672a\u6539\u3002\u5f00\u6e90 PDK \u4e3a\u5b9e\u9a8c\u9884\u89c8\u3002",
+      "sha256": "ba883c94e0f5549b08c73ea3c2ad309c06fcfa42173e84b246f0683699e7abb0",
+      "devices": [
+        "nmos_3p3",
+        "pmos_3p3"
+      ],
+      "cards": [
+        {
+          "model": "nmos_3p3.0",
+          "sha256": "eb5a98b0c0d7ebfd00e3c28b5ce079fbb26e2ffdc6f505b06b87e16b5f519d2f"
+        },
+        {
+          "model": "nmos_3p3.1",
+          "sha256": "4781fc6dcfbfc3c7f5ef2747e2bad93a656269d1323a9f9531eaa6f021b8cc0d"
+        },
+        {
+          "model": "nmos_3p3.2",
+          "sha256": "28b9257fb588eaa5cc4949251227e6e44c12ef327411a56a7988bb87b8fd9f7e"
+        },
+        {
+          "model": "nmos_3p3.3",
+          "sha256": "c7313731349ba25809f3bc0f775bf5dbf6fb147ae1f0c2b391f852a307c0cfd5"
+        },
+        {
+          "model": "nmos_3p3.4",
+          "sha256": "b5df675db76f684d785f35bee79f9dac8f68485b856d410f3914c4fc33219b54"
+        },
+        {
+          "model": "nmos_3p3.5",
+          "sha256": "95319530d650a5690fe094bc83862ce88dbad243d66115716584b344aca7a859"
+        },
+        {
+          "model": "nmos_3p3.6",
+          "sha256": "f6a25c8380e7bc3767c38e616829f59fe67410e74c218fc21e49f1439d2c36a5"
+        },
+        {
+          "model": "nmos_3p3.7",
+          "sha256": "36729ba45cb0cef0d34057ce264e3b988fe314c827343bff178e80bc4f5c1a4b"
+        },
+        {
+          "model": "nmos_3p3.8",
+          "sha256": "00704856593af3f9f6dc6b230b682f57954ad1593e7663d3a6edb3cf0bdf38a8"
+        },
+        {
+          "model": "nmos_3p3.9",
+          "sha256": "ae45df0f075cb7b58cd2246378e58733a098dadb29db90ccfb34cd613aa0036d"
+        },
+        {
+          "model": "nmos_3p3.10",
+          "sha256": "0682e5ab4cc1192616ef73882a9fb92211f75619ffe5a47c4eb870b4413433bc"
+        },
+        {
+          "model": "nmos_3p3.11",
+          "sha256": "f66425100ca1f1df63d241ac53509959fe1f9cdf000226b768537a5ac1b4c292"
+        },
+        {
+          "model": "nmos_3p3.12",
+          "sha256": "55aecfbe923324c30173852ee0262fa857d7242c62bb59d70b344288b2d15fcc"
+        },
+        {
+          "model": "nmos_3p3.13",
+          "sha256": "b5fe60e1d79d28d6e591d90455612921400ed9ba9cea264c514a95a17f296a4f"
+        },
+        {
+          "model": "nmos_3p3.14",
+          "sha256": "acf650f4ee6cdd19b8f2173611d5ebc393a46463382a1522d6441769a4dd66b7"
+        },
+        {
+          "model": "nmos_3p3.15",
+          "sha256": "aba3e418f629be20e2a7cdd1c50009836359302db81b46641802e6db292f908c"
+        },
+        {
+          "model": "pmos_3p3.0",
+          "sha256": "6a68ca8cf652a91e23c6f6493e3dd015f0ed10ea08a23a017b0d78ce561ea5ac"
+        },
+        {
+          "model": "pmos_3p3.1",
+          "sha256": "c1e7df7f3f4d527d07da71acd3783ddf44f694d0565238bd7a3cf648364a241c"
+        },
+        {
+          "model": "pmos_3p3.2",
+          "sha256": "2c7afbc04edec77180ddb2b80b411294c3e39d3ece578a54899c7d8c6ea5a72c"
+        },
+        {
+          "model": "pmos_3p3.3",
+          "sha256": "b6b940d838502a9e9c111e88c894ec199db00e8821823f91df9f4ac6e1f00cb0"
+        },
+        {
+          "model": "pmos_3p3.4",
+          "sha256": "bfc13d279b2d265ad4cf1a462e83cd7c6e5e5c7200dabaa264a60087b4c3e5d0"
+        },
+        {
+          "model": "pmos_3p3.5",
+          "sha256": "45602dc6906dee9cb7ae0b02c0d25122807ffaccbc2af0d249ed1ce793890f32"
+        },
+        {
+          "model": "pmos_3p3.6",
+          "sha256": "9c7161aa309f317649fb350a9f8bdf6cf149b8412270d5a4d9cb042c57a0bcc8"
+        },
+        {
+          "model": "pmos_3p3.7",
+          "sha256": "8d46e4aa5c70bfb440ccdc2534017754ac356b36860c2f351d7f2a6b8fb3c640"
+        },
+        {
+          "model": "pmos_3p3.8",
+          "sha256": "4f612a441e1c04cd0ffd2d65afe4f2b9c6c85123e5bcf77b76bfa39cc95e6017"
+        },
+        {
+          "model": "pmos_3p3.9",
+          "sha256": "fec57a85017f855a5da99c9aa67e47edae1ab844bc2e25d3553330cbc80df8c6"
+        },
+        {
+          "model": "pmos_3p3.10",
+          "sha256": "0c32dc7cf8e1c922445f57688663dee36b3c19241fbcd440056211415ffa5a56"
+        },
+        {
+          "model": "pmos_3p3.11",
+          "sha256": "7aa02e00f7384975b77b5cee8dc07eedf7223ee591bfb5372ebbeef9f4c23e82"
+        },
+        {
+          "model": "pmos_3p3.12",
+          "sha256": "b1531c3d72e68b72d92a2cf30e3e8fc63b03b530ef37ba831b8fccfda0fca9e8"
+        },
+        {
+          "model": "pmos_3p3.13",
+          "sha256": "c2b7629fc9de1a6c33b990bd28e63d3edb74e792bd9777308f22957550a8a143"
+        },
+        {
+          "model": "pmos_3p3.14",
+          "sha256": "a818d80306768dbb9392355c47ca8e15847ccd1d7d05ab9af84641724de57a31"
+        },
+        {
+          "model": "pmos_3p3.15",
+          "sha256": "d843d86129ae74ee986028461ecd633a1f73e84cc66b4dc9a8bab432e0f6ec42"
+        }
+      ]
+    },
+    {
+      "id": "gf180-ff",
+      "name": "3.3V NMOS / PMOS",
+      "process": "GF180MCU",
+      "corner": "FF",
+      "path": "GF180MCU/gf180mcu-3p3-ff.spice",
+      "notice": "GlobalFoundries \u5b98\u65b9 180nm\u30013.3V MOS\u3001FF \u5de5\u827a\u89d2\uff1bBSIM4 level 54\uff0c\u6a21\u578b\u7cfb\u6570\u672a\u6539\u3002\u5f00\u6e90 PDK \u4e3a\u5b9e\u9a8c\u9884\u89c8\u3002",
+      "sha256": "cb32d1ed2410ceb6b708241858f04d3126306fae1ce46130dd51dbb74ab56dc7",
+      "devices": [
+        "nmos_3p3",
+        "pmos_3p3"
+      ],
+      "cards": [
+        {
+          "model": "nmos_3p3.0",
+          "sha256": "bbe5cc80258ef5345dd49ef802b7a91d7faa4b0e84c11fc296cf7a7694bbd215"
+        },
+        {
+          "model": "nmos_3p3.1",
+          "sha256": "3d9d344e0a4f5cce80e91dedc1f3709b47b39fe8fc06280a0aa997b90bcf732f"
+        },
+        {
+          "model": "nmos_3p3.2",
+          "sha256": "6722656fcaf2e826534388a199073f215c89461337e4549d903cdb4d96fc0a6e"
+        },
+        {
+          "model": "nmos_3p3.3",
+          "sha256": "a78f513631603fc2c56ddc7c0e3434e3c726f7aba3ba75e480fdac7853e95598"
+        },
+        {
+          "model": "nmos_3p3.4",
+          "sha256": "02b54f746a950ee1b8d352681f738bd2a0b42b3dec6ca8a2c967259cd1de9ef1"
+        },
+        {
+          "model": "nmos_3p3.5",
+          "sha256": "42b78baafaa294aef4c42ed2d724c5c8f5c938701a2845bad6473048374dee3a"
+        },
+        {
+          "model": "nmos_3p3.6",
+          "sha256": "bde583d1fe455429e5b9c404671b637f31ff892f4c2ef3106be006dfc391d4f6"
+        },
+        {
+          "model": "nmos_3p3.7",
+          "sha256": "b338013bc71c2829d56083d06ae22eb8b8ec847919dfe1b6ce34e0211e5729e8"
+        },
+        {
+          "model": "nmos_3p3.8",
+          "sha256": "1da52d99aafb6a80d72e0e869f5c0a4b3f9e5ab119c415b91b02ce6a896fe109"
+        },
+        {
+          "model": "nmos_3p3.9",
+          "sha256": "26a2ccbb11b7120f64ac6552deaa9278664febb363399267ae507bd78d72dab8"
+        },
+        {
+          "model": "nmos_3p3.10",
+          "sha256": "845aad8af6802a5bc730dcc348e8bd958be0f10eae08be32f5a839af640c73b7"
+        },
+        {
+          "model": "nmos_3p3.11",
+          "sha256": "c18a66cbcd9725bf8a41a30f3a4f5a61acc65f704744ff24623caf91d9107d81"
+        },
+        {
+          "model": "nmos_3p3.12",
+          "sha256": "adeda25138cf06ed67192e28b00dc11c7546d2a62a7afaba61544f2a59182bf5"
+        },
+        {
+          "model": "nmos_3p3.13",
+          "sha256": "f2e05b0e11d2c7503db34b53ca675a90d1020628ba19209fe7ba8369dcc60759"
+        },
+        {
+          "model": "nmos_3p3.14",
+          "sha256": "3a7a79f5705f1310681e8d3e96c4cc72c78733ec62dcf0b8959c62cb01f902e0"
+        },
+        {
+          "model": "nmos_3p3.15",
+          "sha256": "80f7146971e9fc47147e70e6ae4089a4f2d640f0c16a01cf08d6c86fcb556eab"
+        },
+        {
+          "model": "pmos_3p3.0",
+          "sha256": "a2732745d1de66a08a7907e119aa0ec97effbb11739f474e55cabfe15234a51f"
+        },
+        {
+          "model": "pmos_3p3.1",
+          "sha256": "a7fee7b5d4d688d3d2fc5f96899cf35755629dc25a5b209556a2efa40ab3d1de"
+        },
+        {
+          "model": "pmos_3p3.2",
+          "sha256": "2367321519faab866136793645ea7c8b62e5c9e8a5d19119b481eaca580c2023"
+        },
+        {
+          "model": "pmos_3p3.3",
+          "sha256": "9610b1e10b945d2022fd48f55aca8dec4c5b0ef214a612e856f6bb8001428173"
+        },
+        {
+          "model": "pmos_3p3.4",
+          "sha256": "b6d2a915516f16b43e945bfbd61b0a348306a511ad00a971d7f342e469e1e081"
+        },
+        {
+          "model": "pmos_3p3.5",
+          "sha256": "9bd541db5f72b86364a2d6f6499a8c42527f28124ccbef9d0e0f02637bc6b1e6"
+        },
+        {
+          "model": "pmos_3p3.6",
+          "sha256": "9e0d3ba666a9ada1c84fd7fe28ca307d4c067b7e76b02f7f6471cdbc70ba7d76"
+        },
+        {
+          "model": "pmos_3p3.7",
+          "sha256": "b7276808c4d054a9388b66bf3b4282a9977761102d4cc3476a288c022dc5d1a4"
+        },
+        {
+          "model": "pmos_3p3.8",
+          "sha256": "d3b3c0dd63ac8af20b283570d96cc4846b0a8965cb01c962b08b089f554c130d"
+        },
+        {
+          "model": "pmos_3p3.9",
+          "sha256": "79102bb0461390992b7560c456696754fa68bd5d451bf83565a7d5210fa45150"
+        },
+        {
+          "model": "pmos_3p3.10",
+          "sha256": "f79ffe18b8afead0433dbaa175393e74660718b0fadfa9378ba1c1878bc0bf93"
+        },
+        {
+          "model": "pmos_3p3.11",
+          "sha256": "dac7e71b333b3202e9ca14ab8734b41aa31baf8d68d26b234179137145f72f98"
+        },
+        {
+          "model": "pmos_3p3.12",
+          "sha256": "91d44118206c160e3a64b697a3f8cbf7a0c3afc03e04ccaa7327fee2c718999e"
+        },
+        {
+          "model": "pmos_3p3.13",
+          "sha256": "6397ef6ccc8896ab5ff47cbbadf6fc67747169380c01f60e9ce481d006d58bbc"
+        },
+        {
+          "model": "pmos_3p3.14",
+          "sha256": "884032320b82d95fc842721e452bc18c79558b04798bd91a3a0ede905cb0c72f"
+        },
+        {
+          "model": "pmos_3p3.15",
+          "sha256": "34b0f62543b1c5599eab6e290ba81d0e0e44a6bcaa0c585367d62c1bc7e50c8d"
+        }
+      ]
+    },
+    {
+      "id": "gf180-ss",
+      "name": "3.3V NMOS / PMOS",
+      "process": "GF180MCU",
+      "corner": "SS",
+      "path": "GF180MCU/gf180mcu-3p3-ss.spice",
+      "notice": "GlobalFoundries \u5b98\u65b9 180nm\u30013.3V MOS\u3001SS \u5de5\u827a\u89d2\uff1bBSIM4 level 54\uff0c\u6a21\u578b\u7cfb\u6570\u672a\u6539\u3002\u5f00\u6e90 PDK \u4e3a\u5b9e\u9a8c\u9884\u89c8\u3002",
+      "sha256": "852f9020ae1f1a5c7e9347276a176f6281c588e3c85f462bb6f6a614885e4709",
+      "devices": [
+        "nmos_3p3",
+        "pmos_3p3"
+      ],
+      "cards": [
+        {
+          "model": "nmos_3p3.0",
+          "sha256": "fd9e111f9fe20cb605d80989ffed7f6995d99c2fba3a3bcb318f1bdba2019fbc"
+        },
+        {
+          "model": "nmos_3p3.1",
+          "sha256": "1488e5fd041f7f484e569aa90afee06cdad2e0d0c4e02e410e678bea6e4d3803"
+        },
+        {
+          "model": "nmos_3p3.2",
+          "sha256": "afd7ce4eae75c5b27a7845e34e043fdce830f802b6a404d8e23a71b45bf62dd3"
+        },
+        {
+          "model": "nmos_3p3.3",
+          "sha256": "74efb403c0be00029c781d3ae4c2fc8c5da48e924d97a62840b5cc2c717ef269"
+        },
+        {
+          "model": "nmos_3p3.4",
+          "sha256": "e56b4e9caefec49a9ed4ddb5a8ea5f2cd4cfb311080633ee02a680291ca910fc"
+        },
+        {
+          "model": "nmos_3p3.5",
+          "sha256": "7069e2ab1e756b6a0d8d5f74bba5483db3ff1bb4bb31c11cf9568bc614e43449"
+        },
+        {
+          "model": "nmos_3p3.6",
+          "sha256": "2e1cd32d78125adc5b11079b5f0cf5de8e2d18d79de04e4abffe4f77cae3dfad"
+        },
+        {
+          "model": "nmos_3p3.7",
+          "sha256": "fb757330f1d843b1fb12c2dbf5291cbed13b6011625b3f7d89724b42282d4868"
+        },
+        {
+          "model": "nmos_3p3.8",
+          "sha256": "b0ce22d7b788240b3a197502f16dfbf9e068e01dab0d724b3986381ad8027432"
+        },
+        {
+          "model": "nmos_3p3.9",
+          "sha256": "3d2c13f303caf49f61f1d1a2b4e5520d56f1b97f031ea66609383b87bbed07d7"
+        },
+        {
+          "model": "nmos_3p3.10",
+          "sha256": "d7e0d22ca764623fcf452eacec356fed92e323905aecb50dfbf04a2eca107a34"
+        },
+        {
+          "model": "nmos_3p3.11",
+          "sha256": "ef40ca0da1560e6bcdd3ebba6f6f24c8699253348e152ba6e0c3f0ce1d747dc6"
+        },
+        {
+          "model": "nmos_3p3.12",
+          "sha256": "a8e62d531b5ccfb90b529ddfa2c91d523afc881c0663cfe2dc0196d30b26a71a"
+        },
+        {
+          "model": "nmos_3p3.13",
+          "sha256": "4697ae4e5394d03047f6116acb22b2b41c01bd3d4bd4f7480c321dd80bb81b8f"
+        },
+        {
+          "model": "nmos_3p3.14",
+          "sha256": "d0d4f210d9e9e4401baa585ced78d9ac1c82bd3d964028c774b0778522ab347d"
+        },
+        {
+          "model": "nmos_3p3.15",
+          "sha256": "c2ff653c687c6e7dadb6272cff54cab4274821f0f6aa1dae57a72d9343b0fceb"
+        },
+        {
+          "model": "pmos_3p3.0",
+          "sha256": "63f16038b18cc8023b4a82fa5757a32321f9f3d2a7a7228d2b08a5e3af6f4b6d"
+        },
+        {
+          "model": "pmos_3p3.1",
+          "sha256": "aeb5bda15cb8089c45a09b862222a798ae44b23c0710952e09b9010501b032ad"
+        },
+        {
+          "model": "pmos_3p3.2",
+          "sha256": "36d1d63fe104143ceb6f74bf21d45f8bafefe55982015dce3e279c2e66038b23"
+        },
+        {
+          "model": "pmos_3p3.3",
+          "sha256": "3013d1b9f6885ee6cd07d9ae198a1f464fa751cc62d124951865ee5efce1a24f"
+        },
+        {
+          "model": "pmos_3p3.4",
+          "sha256": "55436927ba8ab330080cff609598718315e69c2100782c4ea2cddd8db0492f77"
+        },
+        {
+          "model": "pmos_3p3.5",
+          "sha256": "bef7c78bc14b5a73b7307827ff89da3793c57dad39c367677bd80b00c571149c"
+        },
+        {
+          "model": "pmos_3p3.6",
+          "sha256": "3bcb2f7936a986f63fd92b905dcd24110bed16c433c1f4cb8bff8142d9840532"
+        },
+        {
+          "model": "pmos_3p3.7",
+          "sha256": "914b4b8f5db8682037db7a0a97ae5b1c98aeb20428d4da646c7a472e4c2d10f3"
+        },
+        {
+          "model": "pmos_3p3.8",
+          "sha256": "3e3d86ac893ac66efe16fa8ce60e755ce18f9f8932b1141e3fe893add31c8fb6"
+        },
+        {
+          "model": "pmos_3p3.9",
+          "sha256": "5548911e19e87d1bb25d29f40d16bced3ba5f62215fdfd7a3c21cdab0bd71085"
+        },
+        {
+          "model": "pmos_3p3.10",
+          "sha256": "08cae977649a23c248a186897e3905500f56a152259db4262c1d9b1ff0e687fd"
+        },
+        {
+          "model": "pmos_3p3.11",
+          "sha256": "212b2ba8efda876006f05ff1beddacfcfa7ab7c51d9e7e1de008d78a9f6764dd"
+        },
+        {
+          "model": "pmos_3p3.12",
+          "sha256": "043d36f72330cb0a94f609083a164f6e803adc03f97547a1f47b38805176a92f"
+        },
+        {
+          "model": "pmos_3p3.13",
+          "sha256": "c8ab39ea3a014b0de1507b3b0070136a69b0b9e17b1ca1aa582e148167e6ad91"
+        },
+        {
+          "model": "pmos_3p3.14",
+          "sha256": "a0287f8951fc517c390196ec817fa2bf628ccbb4cd4be423925977805bd6fc4b"
+        },
+        {
+          "model": "pmos_3p3.15",
+          "sha256": "c9539e4cb1f8ec5e99e87b39cc66d157edcdc84a86d0eebbf71a6f14037eb63a"
+        }
+      ]
+    },
+    {
+      "id": "gf180-fs",
+      "name": "3.3V NMOS / PMOS",
+      "process": "GF180MCU",
+      "corner": "FS",
+      "path": "GF180MCU/gf180mcu-3p3-fs.spice",
+      "notice": "GlobalFoundries \u5b98\u65b9 180nm\u30013.3V MOS\u3001FS \u5de5\u827a\u89d2\uff1bBSIM4 level 54\uff0c\u6a21\u578b\u7cfb\u6570\u672a\u6539\u3002\u5f00\u6e90 PDK \u4e3a\u5b9e\u9a8c\u9884\u89c8\u3002",
+      "sha256": "32cd990db75fd1707ab68180d6ba2a540f457eb77e2ae4d34f9daf706eb35a82",
+      "devices": [
+        "nmos_3p3",
+        "pmos_3p3"
+      ],
+      "cards": [
+        {
+          "model": "nmos_3p3.0",
+          "sha256": "bbe5cc80258ef5345dd49ef802b7a91d7faa4b0e84c11fc296cf7a7694bbd215"
+        },
+        {
+          "model": "nmos_3p3.1",
+          "sha256": "3d9d344e0a4f5cce80e91dedc1f3709b47b39fe8fc06280a0aa997b90bcf732f"
+        },
+        {
+          "model": "nmos_3p3.2",
+          "sha256": "6722656fcaf2e826534388a199073f215c89461337e4549d903cdb4d96fc0a6e"
+        },
+        {
+          "model": "nmos_3p3.3",
+          "sha256": "a78f513631603fc2c56ddc7c0e3434e3c726f7aba3ba75e480fdac7853e95598"
+        },
+        {
+          "model": "nmos_3p3.4",
+          "sha256": "02b54f746a950ee1b8d352681f738bd2a0b42b3dec6ca8a2c967259cd1de9ef1"
+        },
+        {
+          "model": "nmos_3p3.5",
+          "sha256": "42b78baafaa294aef4c42ed2d724c5c8f5c938701a2845bad6473048374dee3a"
+        },
+        {
+          "model": "nmos_3p3.6",
+          "sha256": "bde583d1fe455429e5b9c404671b637f31ff892f4c2ef3106be006dfc391d4f6"
+        },
+        {
+          "model": "nmos_3p3.7",
+          "sha256": "b338013bc71c2829d56083d06ae22eb8b8ec847919dfe1b6ce34e0211e5729e8"
+        },
+        {
+          "model": "nmos_3p3.8",
+          "sha256": "1da52d99aafb6a80d72e0e869f5c0a4b3f9e5ab119c415b91b02ce6a896fe109"
+        },
+        {
+          "model": "nmos_3p3.9",
+          "sha256": "26a2ccbb11b7120f64ac6552deaa9278664febb363399267ae507bd78d72dab8"
+        },
+        {
+          "model": "nmos_3p3.10",
+          "sha256": "845aad8af6802a5bc730dcc348e8bd958be0f10eae08be32f5a839af640c73b7"
+        },
+        {
+          "model": "nmos_3p3.11",
+          "sha256": "c18a66cbcd9725bf8a41a30f3a4f5a61acc65f704744ff24623caf91d9107d81"
+        },
+        {
+          "model": "nmos_3p3.12",
+          "sha256": "adeda25138cf06ed67192e28b00dc11c7546d2a62a7afaba61544f2a59182bf5"
+        },
+        {
+          "model": "nmos_3p3.13",
+          "sha256": "f2e05b0e11d2c7503db34b53ca675a90d1020628ba19209fe7ba8369dcc60759"
+        },
+        {
+          "model": "nmos_3p3.14",
+          "sha256": "3a7a79f5705f1310681e8d3e96c4cc72c78733ec62dcf0b8959c62cb01f902e0"
+        },
+        {
+          "model": "nmos_3p3.15",
+          "sha256": "80f7146971e9fc47147e70e6ae4089a4f2d640f0c16a01cf08d6c86fcb556eab"
+        },
+        {
+          "model": "pmos_3p3.0",
+          "sha256": "63f16038b18cc8023b4a82fa5757a32321f9f3d2a7a7228d2b08a5e3af6f4b6d"
+        },
+        {
+          "model": "pmos_3p3.1",
+          "sha256": "aeb5bda15cb8089c45a09b862222a798ae44b23c0710952e09b9010501b032ad"
+        },
+        {
+          "model": "pmos_3p3.2",
+          "sha256": "36d1d63fe104143ceb6f74bf21d45f8bafefe55982015dce3e279c2e66038b23"
+        },
+        {
+          "model": "pmos_3p3.3",
+          "sha256": "3013d1b9f6885ee6cd07d9ae198a1f464fa751cc62d124951865ee5efce1a24f"
+        },
+        {
+          "model": "pmos_3p3.4",
+          "sha256": "55436927ba8ab330080cff609598718315e69c2100782c4ea2cddd8db0492f77"
+        },
+        {
+          "model": "pmos_3p3.5",
+          "sha256": "bef7c78bc14b5a73b7307827ff89da3793c57dad39c367677bd80b00c571149c"
+        },
+        {
+          "model": "pmos_3p3.6",
+          "sha256": "3bcb2f7936a986f63fd92b905dcd24110bed16c433c1f4cb8bff8142d9840532"
+        },
+        {
+          "model": "pmos_3p3.7",
+          "sha256": "914b4b8f5db8682037db7a0a97ae5b1c98aeb20428d4da646c7a472e4c2d10f3"
+        },
+        {
+          "model": "pmos_3p3.8",
+          "sha256": "3e3d86ac893ac66efe16fa8ce60e755ce18f9f8932b1141e3fe893add31c8fb6"
+        },
+        {
+          "model": "pmos_3p3.9",
+          "sha256": "5548911e19e87d1bb25d29f40d16bced3ba5f62215fdfd7a3c21cdab0bd71085"
+        },
+        {
+          "model": "pmos_3p3.10",
+          "sha256": "08cae977649a23c248a186897e3905500f56a152259db4262c1d9b1ff0e687fd"
+        },
+        {
+          "model": "pmos_3p3.11",
+          "sha256": "212b2ba8efda876006f05ff1beddacfcfa7ab7c51d9e7e1de008d78a9f6764dd"
+        },
+        {
+          "model": "pmos_3p3.12",
+          "sha256": "043d36f72330cb0a94f609083a164f6e803adc03f97547a1f47b38805176a92f"
+        },
+        {
+          "model": "pmos_3p3.13",
+          "sha256": "c8ab39ea3a014b0de1507b3b0070136a69b0b9e17b1ca1aa582e148167e6ad91"
+        },
+        {
+          "model": "pmos_3p3.14",
+          "sha256": "a0287f8951fc517c390196ec817fa2bf628ccbb4cd4be423925977805bd6fc4b"
+        },
+        {
+          "model": "pmos_3p3.15",
+          "sha256": "c9539e4cb1f8ec5e99e87b39cc66d157edcdc84a86d0eebbf71a6f14037eb63a"
+        }
+      ]
+    },
+    {
+      "id": "gf180-sf",
+      "name": "3.3V NMOS / PMOS",
+      "process": "GF180MCU",
+      "corner": "SF",
+      "path": "GF180MCU/gf180mcu-3p3-sf.spice",
+      "notice": "GlobalFoundries \u5b98\u65b9 180nm\u30013.3V MOS\u3001SF \u5de5\u827a\u89d2\uff1bBSIM4 level 54\uff0c\u6a21\u578b\u7cfb\u6570\u672a\u6539\u3002\u5f00\u6e90 PDK \u4e3a\u5b9e\u9a8c\u9884\u89c8\u3002",
+      "sha256": "c722ce6e7b9476d1c40d544de87c76a5a8834d3253b6aa70c1cba64d3e641aed",
+      "devices": [
+        "nmos_3p3",
+        "pmos_3p3"
+      ],
+      "cards": [
+        {
+          "model": "nmos_3p3.0",
+          "sha256": "fd9e111f9fe20cb605d80989ffed7f6995d99c2fba3a3bcb318f1bdba2019fbc"
+        },
+        {
+          "model": "nmos_3p3.1",
+          "sha256": "1488e5fd041f7f484e569aa90afee06cdad2e0d0c4e02e410e678bea6e4d3803"
+        },
+        {
+          "model": "nmos_3p3.2",
+          "sha256": "afd7ce4eae75c5b27a7845e34e043fdce830f802b6a404d8e23a71b45bf62dd3"
+        },
+        {
+          "model": "nmos_3p3.3",
+          "sha256": "74efb403c0be00029c781d3ae4c2fc8c5da48e924d97a62840b5cc2c717ef269"
+        },
+        {
+          "model": "nmos_3p3.4",
+          "sha256": "e56b4e9caefec49a9ed4ddb5a8ea5f2cd4cfb311080633ee02a680291ca910fc"
+        },
+        {
+          "model": "nmos_3p3.5",
+          "sha256": "7069e2ab1e756b6a0d8d5f74bba5483db3ff1bb4bb31c11cf9568bc614e43449"
+        },
+        {
+          "model": "nmos_3p3.6",
+          "sha256": "2e1cd32d78125adc5b11079b5f0cf5de8e2d18d79de04e4abffe4f77cae3dfad"
+        },
+        {
+          "model": "nmos_3p3.7",
+          "sha256": "fb757330f1d843b1fb12c2dbf5291cbed13b6011625b3f7d89724b42282d4868"
+        },
+        {
+          "model": "nmos_3p3.8",
+          "sha256": "b0ce22d7b788240b3a197502f16dfbf9e068e01dab0d724b3986381ad8027432"
+        },
+        {
+          "model": "nmos_3p3.9",
+          "sha256": "3d2c13f303caf49f61f1d1a2b4e5520d56f1b97f031ea66609383b87bbed07d7"
+        },
+        {
+          "model": "nmos_3p3.10",
+          "sha256": "d7e0d22ca764623fcf452eacec356fed92e323905aecb50dfbf04a2eca107a34"
+        },
+        {
+          "model": "nmos_3p3.11",
+          "sha256": "ef40ca0da1560e6bcdd3ebba6f6f24c8699253348e152ba6e0c3f0ce1d747dc6"
+        },
+        {
+          "model": "nmos_3p3.12",
+          "sha256": "a8e62d531b5ccfb90b529ddfa2c91d523afc881c0663cfe2dc0196d30b26a71a"
+        },
+        {
+          "model": "nmos_3p3.13",
+          "sha256": "4697ae4e5394d03047f6116acb22b2b41c01bd3d4bd4f7480c321dd80bb81b8f"
+        },
+        {
+          "model": "nmos_3p3.14",
+          "sha256": "d0d4f210d9e9e4401baa585ced78d9ac1c82bd3d964028c774b0778522ab347d"
+        },
+        {
+          "model": "nmos_3p3.15",
+          "sha256": "c2ff653c687c6e7dadb6272cff54cab4274821f0f6aa1dae57a72d9343b0fceb"
+        },
+        {
+          "model": "pmos_3p3.0",
+          "sha256": "a2732745d1de66a08a7907e119aa0ec97effbb11739f474e55cabfe15234a51f"
+        },
+        {
+          "model": "pmos_3p3.1",
+          "sha256": "a7fee7b5d4d688d3d2fc5f96899cf35755629dc25a5b209556a2efa40ab3d1de"
+        },
+        {
+          "model": "pmos_3p3.2",
+          "sha256": "2367321519faab866136793645ea7c8b62e5c9e8a5d19119b481eaca580c2023"
+        },
+        {
+          "model": "pmos_3p3.3",
+          "sha256": "9610b1e10b945d2022fd48f55aca8dec4c5b0ef214a612e856f6bb8001428173"
+        },
+        {
+          "model": "pmos_3p3.4",
+          "sha256": "b6d2a915516f16b43e945bfbd61b0a348306a511ad00a971d7f342e469e1e081"
+        },
+        {
+          "model": "pmos_3p3.5",
+          "sha256": "9bd541db5f72b86364a2d6f6499a8c42527f28124ccbef9d0e0f02637bc6b1e6"
+        },
+        {
+          "model": "pmos_3p3.6",
+          "sha256": "9e0d3ba666a9ada1c84fd7fe28ca307d4c067b7e76b02f7f6471cdbc70ba7d76"
+        },
+        {
+          "model": "pmos_3p3.7",
+          "sha256": "b7276808c4d054a9388b66bf3b4282a9977761102d4cc3476a288c022dc5d1a4"
+        },
+        {
+          "model": "pmos_3p3.8",
+          "sha256": "d3b3c0dd63ac8af20b283570d96cc4846b0a8965cb01c962b08b089f554c130d"
+        },
+        {
+          "model": "pmos_3p3.9",
+          "sha256": "79102bb0461390992b7560c456696754fa68bd5d451bf83565a7d5210fa45150"
+        },
+        {
+          "model": "pmos_3p3.10",
+          "sha256": "f79ffe18b8afead0433dbaa175393e74660718b0fadfa9378ba1c1878bc0bf93"
+        },
+        {
+          "model": "pmos_3p3.11",
+          "sha256": "dac7e71b333b3202e9ca14ab8734b41aa31baf8d68d26b234179137145f72f98"
+        },
+        {
+          "model": "pmos_3p3.12",
+          "sha256": "91d44118206c160e3a64b697a3f8cbf7a0c3afc03e04ccaa7327fee2c718999e"
+        },
+        {
+          "model": "pmos_3p3.13",
+          "sha256": "6397ef6ccc8896ab5ff47cbbadf6fc67747169380c01f60e9ce481d006d58bbc"
+        },
+        {
+          "model": "pmos_3p3.14",
+          "sha256": "884032320b82d95fc842721e452bc18c79558b04798bd91a3a0ede905cb0c72f"
+        },
+        {
+          "model": "pmos_3p3.15",
+          "sha256": "34b0f62543b1c5599eab6e290ba81d0e0e44a6bcaa0c585367d62c1bc7e50c8d"
+        }
+      ]
+    }
+  ]
+}

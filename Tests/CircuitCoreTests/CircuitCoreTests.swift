@@ -54,7 +54,7 @@ import ImageIO
 }
 @Test func requestedMOSArrowsAndCappedSupplyRails() {
     for kind in [ComponentKind.nmos, .pmos] {
-        let c = Component(kind: kind, name: "M1", position: .zero)
+        var c = Component(kind: kind, name: "M1", position: .zero);c.referenceArtwork = nil
         for theme in SymbolTheme.allCases {
             let geometry = Symbols.geometry(c, theme: theme)
             let arrows = geometry.compactMap { p -> [Point]? in if case .polygon(let points, let filled) = p, filled && points.count == 3 { return points }; return nil }
@@ -65,7 +65,8 @@ import ImageIO
         }
     }
     for kind in [ComponentKind.vdd, .vss] {
-        let geometry = Symbols.geometry(Component(kind: kind, name: kind.prefix, position: .zero), theme: .razavi)
+        var legacy = Component(kind: kind, name: kind.prefix, position: .zero);legacy.referenceArtwork = nil
+        let geometry = Symbols.geometry(legacy, theme: .razavi)
         #expect(geometry.count == 2)
         if case .line(let points) = geometry[0] { #expect(points.allSatisfy { $0.x == 0 }); #expect(points.count == 2) }
         else { Issue.record("Supply rail must have a straight vertical stem") }
@@ -127,7 +128,7 @@ import ImageIO
         let primitives = Symbols.geometry(c, theme: theme)
         for pin in c.pins {
             let position = c.world(pin.offset)
-            let isOnLine = primitives.contains { primitive in if case .line(let points) = primitive { return zip(points, points.dropFirst()).contains { distanceToSegment(position, $0, $1) < 0.001 } }; return false }
+            let isOnLine = primitives.contains { primitive in if case .line(let points) = primitive { return zip(points, points.dropFirst()).contains { distanceToSegment(position, $0, $1) < 0.001 } }; if case .reference(let path) = primitive { let points=path.sampledPoints;return zip(points,points.dropFirst()).contains { distanceToSegment(position,$0,$1)<0.001 } }; return false }
             #expect(isOnLine, "\(kind) \(theme) \(rotation) pin \(pin.name) is disconnected from its drawing")
         }
         var circuit = Circuit(); circuit.components = [c]; circuit.theme = theme; let b = circuit.bounds
@@ -135,6 +136,7 @@ import ImageIO
             let tb = Symbols.textBounds(text); #expect(b.contains(Point(tb.minX, tb.minY))); #expect(b.contains(Point(tb.maxX, tb.maxY)))
             let samples = primitives.flatMap { primitive -> [Point] in
                 switch primitive {
+                case .reference(let path):return path.sampledPoints
                 case .line(let points), .polygon(let points, _):
                     return zip(points, points.dropFirst()).flatMap { a, z in
                         let steps = max(1, Int(a.distance(to: z)))

@@ -1,0 +1,113 @@
+[
+  {
+    "id": "gf180-tt",
+    "name": "3.3V NMOS / PMOS",
+    "process": "GF180MCU",
+    "corner": "TT",
+    "path": "GF180MCU/gf180mcu-3p3-tt.spice",
+    "notice": "GlobalFoundries 官方 180nm、3.3V MOS、TT 工艺角；BSIM4 level 54，模型系数未改。开源 PDK 为实验预览。",
+    "sha256": "ba883c94e0f5549b08c73ea3c2ad309c06fcfa42173e84b246f0683699e7abb0",
+    "devices": [
+      "nmos_3p3",
+      "pmos_3p3"
+    ]
+  },
+  {
+    "id": "gf180-ff",
+    "name": "3.3V NMOS / PMOS",
+    "process": "GF180MCU",
+    "corner": "FF",
+    "path": "GF180MCU/gf180mcu-3p3-ff.spice",
+    "notice": "GlobalFoundries 官方 180nm、3.3V MOS、FF 工艺角；BSIM4 level 54，模型系数未改。开源 PDK 为实验预览。",
+    "sha256": "cb32d1ed2410ceb6b708241858f04d3126306fae1ce46130dd51dbb74ab56dc7",
+    "devices": [
+      "nmos_3p3",
+      "pmos_3p3"
+    ]
+  },
+  {
+    "id": "gf180-ss",
+    "name": "3.3V NMOS / PMOS",
+    "process": "GF180MCU",
+    "corner": "SS",
+    "path": "GF180MCU/gf180mcu-3p3-ss.spice",
+    "notice": "GlobalFoundries 官方 180nm、3.3V MOS、SS 工艺角；BSIM4 level 54，模型系数未改。开源 PDK 为实验预览。",
+    "sha256": "852f9020ae1f1a5c7e9347276a176f6281c588e3c85f462bb6f6a614885e4709",
+    "devices": [
+      "nmos_3p3",
+      "pmos_3p3"
+    ]
+  },
+  {
+    "id": "gf180-fs",
+    "name": "3.3V NMOS / PMOS",
+    "process": "GF180MCU",
+    "corner": "FS",
+    "path": "GF180MCU/gf180mcu-3p3-fs.spice",
+    "notice": "GlobalFoundries 官方 180nm、3.3V MOS、FS 工艺角；BSIM4 level 54，模型系数未改。开源 PDK 为实验预览。",
+    "sha256": "32cd990db75fd1707ab68180d6ba2a540f457eb77e2ae4d34f9daf706eb35a82",
+    "devices": [
+      "nmos_3p3",
+      "pmos_3p3"
+    ]
+  },
+  {
+    "id": "gf180-sf",
+    "name": "3.3V NMOS / PMOS",
+    "process": "GF180MCU",
+    "corner": "SF",
+    "path": "GF180MCU/gf180mcu-3p3-sf.spice",
+    "notice": "GlobalFoundries 官方 180nm、3.3V MOS、SF 工艺角；BSIM4 level 54，模型系数未改。开源 PDK 为实验预览。",
+    "sha256": "c722ce6e7b9476d1c40d544de87c76a5a8834d3253b6aa70c1cba64d3e641aed",
+    "devices": [
+      "nmos_3p3",
+      "pmos_3p3"
+    ]
+  },
+  {
+    "id": "sky130-svt-tt",
+    "name": "1.8V SVT NMOS / PMOS",
+    "process": "SKY130",
+    "corner": "TT",
+    "path": "SKY130/sky130-1p8-svt-tt.spice",
+    "notice": "SkyWater 官方 SKY130 1.8V SVT MOS、TT 典型角；原始 BSIM4 系数，适配器只做尺寸单位转换。开源发布不作为流片签核。",
+    "sha256": "8dc7a4f93d8dcaca57b33dc91ec1527a2d092951f2012689df9eba765e01e1f0",
+    "devices": [
+      "sky130_fd_pr__nfet_01v8",
+      "sky130_fd_pr__pfet_01v8"
+    ],
+    "geometry": {
+      "sky130_fd_pr__nfet_01v8": {
+        "minLengthM": 1.5e-07,
+        "minWidthM": 3.6e-07
+      },
+      "sky130_fd_pr__pfet_01v8": {
+        "minLengthM": 1.5e-07,
+        "minWidthM": 4.2e-07
+      }
+    }
+  },
+  {
+    "id": "sky130-lvt-tt",
+    "name": "1.8V LVT NMOS / PMOS",
+    "process": "SKY130",
+    "corner": "TT",
+    "path": "SKY130/sky130-1p8-lvt-tt.spice",
+    "notice": "SkyWater 官方 SKY130 1.8V LVT MOS、TT 典型角；PMOS LVT 要求 L≥350nm。原始 BSIM4 系数，适配器只做尺寸单位转换。开源发布不作为流片签核。",
+    "sha256": "492a9173e0f974a73ac7fa6864ab14e21b188b8bcf6d0c7d8b42ef65e6e62a9f",
+    "devices": [
+      "sky130_fd_pr__nfet_01v8_lvt",
+      "sky130_fd_pr__pfet_01v8_lvt"
+    ],
+    "geometry": {
+      "sky130_fd_pr__nfet_01v8_lvt": {
+        "minLengthM": 1.5e-07,
+        "minWidthM": 4.2e-07
+      },
+      "sky130_fd_pr__pfet_01v8_lvt": {
+        "minLengthM": 3.5e-07,
+        "minWidthM": 4.2e-07
+      }
+    }
+  }
+]

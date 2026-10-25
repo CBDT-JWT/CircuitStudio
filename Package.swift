@@ -7,7 +7,7 @@ let package = Package(
     products: [.library(name: "CircuitCore", targets: ["CircuitCore"])],
     targets: [
         .binaryTarget(name: "NgSpice", path: "Vendor/ngspice/NgSpice.xcframework"),
-        .target(name: "CircuitCore", dependencies: ["NgSpice"], linkerSettings: [.linkedLibrary("c++")]),
-        .testTarget(name: "CircuitCoreTests", dependencies: ["CircuitCore"])
+        .target(name: "CircuitCore", dependencies: ["NgSpice"], resources: [.copy("Resources/Fonts")], linkerSettings: [.linkedLibrary("c++")]),
+        .testTarget(name: "CircuitCoreTests", dependencies: ["CircuitCore"], resources: [.copy("Fixtures/Handwriting")])
     ]
 )

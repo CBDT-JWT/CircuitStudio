@@ -11,17 +11,28 @@ public enum CanvasPurpose: String, Codable, CaseIterable, Identifiable, Sendable
 public enum ComponentKind: String, Codable, CaseIterable, Sendable {
     case resistor, capacitor, polarizedCapacitor, inductor, voltageSource, acVoltage, currentSource, pulseSource
     case nmos, pmos, npn, pnp, diode, zener, led, opAmp, ground, vdd, vss, port
-    public var title: String {
-        switch self {
+    case largeInductor, powerRail, battery, biasPort, cellPin, noConnect
+    case vcvs, vccs, cccs, ccvs
+    case openSwitch, closedSwitch, controlledSwitch, voltageSwitch, chopper, simpleSwitch, spdtSwitch
+    case opAmpSmall, fdAmp, fdAmpSmall, voltageAmplifier, transconductance, differentialTransconductance, comparator, fdComparator, adc, dac
+    case inverter, buffer, andGate, orGate, nandGate, norGate, xorGate, xnorGate, dFlipFlop, dFlipFlopReset, dFlipFlopQ, delayCell
+    case adder, multiplier, integrator, unitDelay, discreteIntegrator, quantizer
+    case variableResistor, variableCapacitor, variableInductor, tCoil, centerTappedCoil, transformer, depletionNMOS, depletionPMOS, ndmos, pdmos
+    public var title: String { NSLocalizedString(titleKey,comment: "Component name") }
+    public var titleKey: String {
+        if let entry = extendedInfo { return entry.0 }
+        return switch self {
         case .resistor: "Resistor"; case .capacitor: "Capacitor"; case .polarizedCapacitor: "Polarized capacitor"
         case .inductor: "Inductor"; case .voltageSource: "DC voltage"; case .acVoltage: "AC / sine voltage"
         case .currentSource: "Current source"; case .pulseSource: "Pulse voltage"; case .nmos: "NMOS"; case .pmos: "PMOS"
         case .npn: "NPN"; case .pnp: "PNP"; case .diode: "Diode"; case .zener: "Zener diode"; case .led: "LED"
         case .opAmp: "Op amp"; case .ground: "Ground"; case .vdd: "VDD"; case .vss: "VSS"; case .port: "Port"
+        default: rawValue
         }
     }
     public var category: String {
-        switch self {
+        if let entry = extendedInfo { return entry.1 }
+        return switch self {
         case .resistor, .capacitor, .polarizedCapacitor, .inductor: "Passives"
         case .voltageSource, .acVoltage, .currentSource, .pulseSource: "Sources"
         case .nmos, .pmos, .npn, .pnp, .diode, .zener, .led: "Semiconductors"
@@ -30,15 +41,18 @@ public enum ComponentKind: String, Codable, CaseIterable, Sendable {
         }
     }
     public var prefix: String {
-        switch self {
+        if let entry = extendedInfo { return entry.2 }
+        return switch self {
         case .resistor: "R"; case .capacitor, .polarizedCapacitor: "C"; case .inductor: "L"
         case .voltageSource, .acVoltage, .pulseSource: "V"; case .currentSource: "I"
         case .nmos, .pmos: "M"; case .npn, .pnp: "Q"; case .diode, .zener, .led: "D"
         case .opAmp: "E"; case .ground: "GND"; case .vdd: "VDD"; case .vss: "VSS"; case .port: "P"
+        default: "X"
         }
     }
     public var defaultParameters: [String: String] {
-        switch self {
+        if let parameters = extendedParameters { return parameters }
+        return switch self {
         case .resistor: ["value": "10k"]
         case .capacitor, .polarizedCapacitor: ["value": "2p"]
         case .inductor: ["value": "10u"]
@@ -53,8 +67,9 @@ public enum ComponentKind: String, Codable, CaseIterable, Sendable {
         default: [:]
         }
     }
-    public var isMOS: Bool { self == .nmos || self == .pmos }
-    public var isConnection: Bool { [.ground, .vdd, .vss, .port].contains(self) }
+    public var isMOS: Bool { [.nmos, .pmos, .depletionNMOS, .depletionPMOS, .ndmos, .pdmos].contains(self) }
+    public var isPMOS: Bool { [.pmos, .depletionPMOS, .pdmos].contains(self) }
+    public var isConnection: Bool { [.ground, .vdd, .vss, .port, .powerRail, .biasPort, .cellPin, .noConnect].contains(self) }
 }
 
 public struct Pin: Codable, Hashable, Sendable {
@@ -64,15 +79,26 @@ public struct Pin: Codable, Hashable, Sendable {
 public struct Component: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID; public var kind: ComponentKind; public var name: String; public var position: Point
     public var rotation: Int = 0; public var flipX = false; public var flipY = false
+    public var referenceArtwork: Bool? = nil
+    public var appearance: ObjectAppearance? = nil
+    public var nameOffset: Point? = nil; public var valueOffset: Point? = nil
     public var parameters: [String: String]; public var showName = true; public var showValue = true
     public init(kind: ComponentKind, name: String, position: Point, id: UUID = UUID()) {
+        self.referenceArtwork = false
         self.id = id; self.kind = kind; self.name = name; self.position = position; parameters = kind.defaultParameters
+        if [.andGate,.orGate,.nandGate,.norGate,.xorGate,.xnorGate].contains(kind) { parameters["inputs"]="2" }
+        if [.opAmp,.opAmpSmall,.fdAmp,.fdAmpSmall,.differentialTransconductance,.comparator,.fdComparator].contains(kind) { parameters["swapInputs"]="false" }
     }
     public var pins: [Pin] {
+        if [.andGate,.orGate,.nandGate,.norGate,.xorGate,.xnorGate].contains(kind) {
+            let count=max(2,min(4,Int(parameters["inputs"] ?? "2") ?? 2))
+            return (0..<count).map { Pin(String(UnicodeScalar(65+$0)!),Point(-40,(Double($0)-Double(count-1)/2)*20)) }+[Pin("OUT",Point(40,0))]
+        }
+        if let pins = kind.extendedPins { return pins }
         switch kind {
-        case .nmos, .pmos:
+        case .nmos, .pmos, .depletionNMOS, .depletionPMOS, .ndmos, .pdmos:
             // PMOS source is the upper terminal in the native academic symbol.
-            var pins = [Pin("D", Point(10, kind == .pmos ? 40 : -40)), Pin("G", Point(-40, 0)), Pin("S", Point(10, kind == .pmos ? -40 : 40))]
+            var pins = [Pin("D", Point(10, kind.isPMOS ? 40 : -40)), Pin("G", Point(-40, 0)), Pin("S", Point(10, kind.isPMOS ? -40 : 40))]
             if parameters["bulk"] == "external" { pins.append(Pin("B", Point(40, 0))) }
             return pins
         case .npn, .pnp: return [Pin("C", Point(10, -40)), Pin("B", Point(-40, 0)), Pin("E", Point(10, 40))]
@@ -86,7 +112,7 @@ public struct Component: Identifiable, Codable, Hashable, Sendable {
     public var bodyBounds: Bounds { Bounds([world(Point(-25, -28)), world(Point(25, 28)), world(Point(-25, 28)), world(Point(25, -28))]) }
     public var valueLabel: String {
         if kind.isMOS { return "\(EngineeringUnits.display(parameters["W"] ?? "20u", unit: "m")) / \(EngineeringUnits.display(parameters["L"] ?? "180n", unit: "m"))" }
-        let unit = kind == .resistor ? "Ω" : [.capacitor, .polarizedCapacitor].contains(kind) ? "F" : kind == .inductor ? "H" : kind == .currentSource ? "A" : "V"
+        let unit = [.resistor, .variableResistor].contains(kind) ? "Ω" : [.capacitor, .polarizedCapacitor, .variableCapacitor].contains(kind) ? "F" : [.inductor, .largeInductor, .variableInductor].contains(kind) ? "H" : kind == .currentSource ? "A" : "V"
         return parameters["value"].map { EngineeringUnits.display($0, unit: unit) } ?? ""
     }
 }
@@ -97,10 +123,13 @@ public struct TerminalRef: Codable, Hashable, Sendable {
 }
 public struct Wire: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID; public var points: [Point]; public var start: TerminalRef?; public var end: TerminalRef?
+    public var appearance: ObjectAppearance? = nil
+    public var powerNet:String? = nil; public var labelOffset:Point? = nil
     public init(points: [Point], start: TerminalRef? = nil, end: TerminalRef? = nil) { id = UUID(); self.points = points; self.start = start; self.end = end }
 }
 public struct CircuitLabel: Identifiable, Codable, Hashable, Sendable {
     public var id: UUID; public var text: String; public var position: Point; public var isNet: Bool
+    public var appearance: ObjectAppearance? = nil
     public init(_ text: String, at position: Point, isNet: Bool = true) { id = UUID(); self.text = text; self.position = position; self.isNet = isNet }
 }
 public enum Analysis: String, Codable, CaseIterable, Sendable { case op = "Operating point", dc = "DC sweep", ac = "AC analysis", tran = "Transient" }
@@ -108,7 +137,7 @@ public struct SimulationSettings: Codable, Hashable, Sendable {
     public var analysis: Analysis = .ac
     public var start = "10"; public var stop = "100Meg"; public var points = 40
     public var source = "V1"; public var dcStart = "0"; public var dcStop = "1.8"; public var dcStep = "10m"
-    public var timeStep = "1u"; public var duration = "5m"; public var probes: [String] = ["VOUT", "VIN"]
+    public var timeStep = "1u"; public var duration = "5m"; public var startSaving:String? = nil; public var probes: [String] = ["VOUT", "VIN"]
     public init() {}
 }
 public struct Circuit: Codable, Hashable, Sendable {
@@ -117,11 +146,16 @@ public struct Circuit: Codable, Hashable, Sendable {
     public var figures: [FigureElement] = []; public var figureConnectors: [FigureConnector] = []
     public var theme: SymbolTheme = .razavi; public var mode: DiagramMode = .standard
     public var purpose: CanvasPurpose = .schematic
+    public var appearance: PublicationAppearance? = nil
+    public var supplyVoltages: [String:String]? = nil
     public var simulation = SimulationSettings(); public var modelLibrary = ""
+    /// Optional PencilKit draft, kept locally with the document on every platform.
+    public var handDrawing: Data? = nil
+    public var annotationDrawing: Data? = nil
     /// Monotonic counters prevent deleted reference designators being reused.
     public var nameCounters: [String: Int] = [:]
     public init(title: String = "Untitled circuit", purpose: CanvasPurpose = .schematic) { self.title = title; self.purpose = purpose }
-    enum CodingKeys: String, CodingKey { case id, title, components, wires, labels, junctions, figures, figureConnectors, theme, mode, purpose, simulation, modelLibrary, nameCounters }
+    enum CodingKeys: String, CodingKey { case id, title, components, wires, labels, junctions, figures, figureConnectors, theme, mode, purpose, simulation, modelLibrary, nameCounters, handDrawing, annotationDrawing, supplyVoltages, appearance }
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(UUID.self, forKey: .id); title = try values.decode(String.self, forKey: .title)
@@ -133,6 +167,10 @@ public struct Circuit: Codable, Hashable, Sendable {
         theme = try values.decode(SymbolTheme.self, forKey: .theme); mode = try values.decode(DiagramMode.self, forKey: .mode)
         simulation = try values.decode(SimulationSettings.self, forKey: .simulation); modelLibrary = try values.decode(String.self, forKey: .modelLibrary)
         nameCounters = try values.decode([String: Int].self, forKey: .nameCounters)
+        appearance = try values.decodeIfPresent(PublicationAppearance.self,forKey:.appearance)
+        supplyVoltages = try values.decodeIfPresent([String:String].self,forKey:.supplyVoltages)
+        handDrawing = try values.decodeIfPresent(Data.self, forKey: .handDrawing)
+        annotationDrawing = try values.decodeIfPresent(Data.self, forKey: .annotationDrawing)
     }
     public mutating func add(_ kind: ComponentKind, at position: Point) -> UUID {
         let n = max(nameCounters[kind.prefix] ?? 0, components.filter { $0.kind.prefix == kind.prefix }.compactMap { Int($0.name.dropFirst(kind.prefix.count)) }.max() ?? 0) + 1
@@ -140,7 +178,7 @@ public struct Circuit: Codable, Hashable, Sendable {
         let component = Component(kind: kind, name: kind.isConnection ? kind.prefix : "\(kind.prefix)\(n)", position: position)
         components.append(component); return component.id
     }
-    public func position(of terminal: TerminalRef) -> Point? { components.first { $0.id == terminal.componentID }?.pinPosition(terminal.pin) ?? figures.first { $0.id == terminal.componentID }?.anchor(terminal.pin) }
+    public func position(of terminal: TerminalRef) -> Point? { components.first { $0.id == terminal.componentID }?.pinPosition(terminal.pin) ?? figures.first { $0.id == terminal.componentID }?.anchor(terminal.pin) ?? railPoint(terminal) }
     public func resolvedPoints(_ wire: Wire) -> [Point] {
         guard wire.points.count > 1 else { return wire.points }
         var points = wire.points
@@ -169,8 +207,10 @@ public struct CircuitArchive: Codable, Sendable {
         guard (1...currentVersion).contains(archive.formatVersion) else { throw CircuitError.message("This document uses format version \(archive.formatVersion). Update Circuit Studio to open it.") }
         let ids = archive.circuit.components.map(\.id) + archive.circuit.wires.map(\.id) + archive.circuit.labels.map(\.id) + archive.circuit.figures.map(\.id) + archive.circuit.figureConnectors.map(\.id)
         guard Set(ids).count == ids.count else { throw CircuitError.message("The document contains duplicate object identifiers.") }
+        guard (archive.circuit.handDrawing?.count ?? 0) <= 5_000_000, (archive.circuit.annotationDrawing?.count ?? 0) <= 5_000_000 else { throw CircuitError.message("The saved ink drawing exceeds 5 MB.") }
         guard archive.circuit.components.allSatisfy({ $0.position.x.isFinite && $0.position.y.isFinite && [0, 90, 180, 270].contains($0.rotation) }), archive.circuit.wires.allSatisfy({ $0.points.count >= 2 && $0.points.allSatisfy { $0.x.isFinite && $0.y.isFinite } }) else { throw CircuitError.message("The document contains invalid geometry.") }
         guard archive.circuit.figures.allSatisfy({ $0.position.x.isFinite && $0.position.y.isFinite && $0.size.x.isFinite && $0.size.y.isFinite && $0.size.x >= 2 && $0.size.y >= 2 && $0.fontSize.isFinite && (8...72).contains($0.fontSize) && $0.style.width.isFinite && (0.5...6).contains($0.style.width) && [0, 90, 180, 270].contains($0.rotation) }), archive.circuit.figureConnectors.allSatisfy({ $0.points.count >= 2 && $0.points.allSatisfy { $0.x.isFinite && $0.y.isFinite } && $0.style.width.isFinite && (0.5...6).contains($0.style.width) }) else { throw CircuitError.message("The document contains invalid figure geometry.") }
+        try archive.circuit.validateAppearance()
         return archive
     }
 }

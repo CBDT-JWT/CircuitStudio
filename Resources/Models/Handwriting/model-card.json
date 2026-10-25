@@ -1,0 +1,817 @@
+{
+  "model": "CircuitHandwriting v1",
+  "architecture_id": "ensemble",
+  "architecture": "One Core ML graph: small CNN + MobileNetV3-Small features, mean probabilities, 96x96 grayscale",
+  "parameters": 1322518,
+  "labels": [
+    "other",
+    "resistor",
+    "capacitor",
+    "polarizedCapacitor",
+    "inductor",
+    "diode",
+    "ground",
+    "voltageSource",
+    "acVoltage",
+    "mos",
+    "opAmp"
+  ],
+  "dataset": "CGHD v2",
+  "source": "https://zenodo.org/records/6448277",
+  "data_license": "CC0-1.0",
+  "pretraining": "torchvision MobileNet_V3_Small_Weights.IMAGENET1K_V1",
+  "pretraining_notice": "TorchVision BSD-3-Clause",
+  "writers": {
+    "train": [
+      1,
+      2,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      12,
+      13,
+      14
+    ],
+    "validation": [
+      3,
+      11
+    ],
+    "test": [
+      15,
+      16,
+      17
+    ]
+  },
+  "photographs": "P1 only, EXIF-normalized; real object crops",
+  "training_real_counts": {
+    "resistor": 859,
+    "inductor": 88,
+    "capacitor": 355,
+    "voltageSource": 46,
+    "other": 5422,
+    "acVoltage": 32,
+    "diode": 287,
+    "ground": 179,
+    "polarizedCapacitor": 76,
+    "mos": 26,
+    "opAmp": 18
+  },
+  "synthetic_samples_per_class": 900,
+  "thresholds": {
+    "other": 1.0,
+    "resistor": 0.7,
+    "capacitor": 0.7,
+    "polarizedCapacitor": 0.99,
+    "inductor": 0.7,
+    "diode": 0.7,
+    "ground": 0.8,
+    "voltageSource": 0.99,
+    "acVoltage": 0.99,
+    "mos": 0.7,
+    "opAmp": 0.7
+  },
+  "minimum_margin": 0.2,
+  "validation": {
+    "samples": 1152,
+    "accuracy": 0.9366319444444444,
+    "accepted": 271,
+    "accepted_precision": 0.985239852398524,
+    "symbol_recall": 0.689922480620155,
+    "classes": {
+      "other": {
+        "samples": 765,
+        "accuracy": 0.9764705882352941,
+        "accepted": 0,
+        "precision": 0,
+        "recall": 0.0
+      },
+      "resistor": {
+        "samples": 143,
+        "accuracy": 0.9300699300699301,
+        "accepted": 129,
+        "precision": 0.9767441860465116,
+        "recall": 0.8811188811188811
+      },
+      "capacitor": {
+        "samples": 62,
+        "accuracy": 0.9838709677419355,
+        "accepted": 53,
+        "precision": 1.0,
+        "recall": 0.8548387096774194
+      },
+      "polarizedCapacitor": {
+        "samples": 16,
+        "accuracy": 0.9375,
+        "accepted": 2,
+        "precision": 1.0,
+        "recall": 0.125
+      },
+      "inductor": {
+        "samples": 16,
+        "accuracy": 0.5625,
+        "accepted": 8,
+        "precision": 1.0,
+        "recall": 0.5
+      },
+      "diode": {
+        "samples": 72,
+        "accuracy": 0.9444444444444444,
+        "accepted": 59,
+        "precision": 0.9830508474576272,
+        "recall": 0.8055555555555556
+      },
+      "ground": {
+        "samples": 52,
+        "accuracy": 0.6153846153846154,
+        "accepted": 10,
+        "precision": 1.0,
+        "recall": 0.19230769230769232
+      },
+      "voltageSource": {
+        "samples": 10,
+        "accuracy": 0.0,
+        "accepted": 0,
+        "precision": 0,
+        "recall": 0.0
+      },
+      "acVoltage": {
+        "samples": 2,
+        "accuracy": 1.0,
+        "accepted": 1,
+        "precision": 1.0,
+        "recall": 0.5
+      },
+      "mos": {
+        "samples": 8,
+        "accuracy": 0.75,
+        "accepted": 4,
+        "precision": 1.0,
+        "recall": 0.5
+      },
+      "opAmp": {
+        "samples": 6,
+        "accuracy": 1.0,
+        "accepted": 5,
+        "precision": 1.0,
+        "recall": 0.8333333333333334
+      }
+    },
+    "confusion_matrix": [
+      [
+        747,
+        2,
+        1,
+        5,
+        0,
+        7,
+        2,
+        1,
+        0,
+        0,
+        0
+      ],
+      [
+        7,
+        133,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        0,
+        0,
+        61,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        15,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        5,
+        2,
+        0,
+        0,
+        9,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        0,
+        0,
+        68,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        13,
+        3,
+        2,
+        1,
+        0,
+        0,
+        32,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        4,
+        0,
+        1,
+        1,
+        0,
+        0,
+        3,
+        0,
+        1,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        2,
+        0,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        6,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        6
+      ]
+    ]
+  },
+  "test": {
+    "samples": 4778,
+    "accuracy": 0.9135621598995396,
+    "accepted": 747,
+    "accepted_precision": 0.9022757697456493,
+    "symbol_recall": 0.5588723051409619,
+    "classes": {
+      "other": {
+        "samples": 3572,
+        "accuracy": 0.9487681970884658,
+        "accepted": 0,
+        "precision": 0,
+        "recall": 0.0
+      },
+      "resistor": {
+        "samples": 482,
+        "accuracy": 0.8609958506224067,
+        "accepted": 353,
+        "precision": 0.9688385269121813,
+        "recall": 0.7095435684647303
+      },
+      "capacitor": {
+        "samples": 170,
+        "accuracy": 0.9411764705882353,
+        "accepted": 149,
+        "precision": 0.8456375838926175,
+        "recall": 0.7411764705882353
+      },
+      "polarizedCapacitor": {
+        "samples": 141,
+        "accuracy": 0.6312056737588653,
+        "accepted": 12,
+        "precision": 1.0,
+        "recall": 0.0851063829787234
+      },
+      "inductor": {
+        "samples": 18,
+        "accuracy": 0.5555555555555556,
+        "accepted": 10,
+        "precision": 0.6,
+        "recall": 0.3333333333333333
+      },
+      "diode": {
+        "samples": 128,
+        "accuracy": 0.8671875,
+        "accepted": 106,
+        "precision": 0.8113207547169812,
+        "recall": 0.671875
+      },
+      "ground": {
+        "samples": 205,
+        "accuracy": 0.6780487804878049,
+        "accepted": 83,
+        "precision": 0.8313253012048193,
+        "recall": 0.33658536585365856
+      },
+      "voltageSource": {
+        "samples": 7,
+        "accuracy": 0.7142857142857143,
+        "accepted": 0,
+        "precision": 0,
+        "recall": 0.0
+      },
+      "acVoltage": {
+        "samples": 3,
+        "accuracy": 1.0,
+        "accepted": 2,
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "mos": {
+        "samples": 28,
+        "accuracy": 0.7857142857142857,
+        "accepted": 12,
+        "precision": 0.9166666666666666,
+        "recall": 0.39285714285714285
+      },
+      "opAmp": {
+        "samples": 24,
+        "accuracy": 0.9166666666666666,
+        "accepted": 20,
+        "precision": 1.0,
+        "recall": 0.8333333333333334
+      }
+    },
+    "confusion_matrix": [
+      [
+        3389,
+        27,
+        22,
+        21,
+        1,
+        42,
+        49,
+        4,
+        14,
+        3,
+        0
+      ],
+      [
+        54,
+        415,
+        4,
+        0,
+        6,
+        0,
+        3,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        5,
+        0,
+        160,
+        4,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        14,
+        2,
+        33,
+        89,
+        0,
+        1,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        4,
+        4,
+        0,
+        0,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        17,
+        0,
+        0,
+        0,
+        0,
+        111,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        55,
+        0,
+        9,
+        0,
+        0,
+        1,
+        139,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        5,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        22,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        22
+      ]
+    ]
+  },
+  "branches": {
+    "small_sha256": "a7eb9ae3c481d0a1cb975b373f72d7d13d9ed40fcca2ddcee2031cae845cfc8c",
+    "mobile_sha256": "971db823f31798993c0e3505b29bba9b722133a133773eceeb7dddbef94c107a"
+  },
+  "selection": "Branch checkpoints: equal mean of writer-disjoint real validation macro accuracy and a separate-seed normalized synthetic stroke probe. Ensemble thresholds: real validation precision >=95% on at least 3 accepted samples; otherwise 0.99. Test data does not select checkpoints or thresholds.",
+  "limitations": [
+    "Photo crop metrics are not physical iPad Pencil or full-circuit detection accuracy.",
+    "There are only 26 real training FET crops and 8 validation FET crops; writer/style generalization remains limited.",
+    "MOS labels do not identify N/P polarity. Automatic drafts default to NMOS; PMOS must be selected.",
+    "Geometric grouping, orientation fitting and wire attachment still require review.",
+    "Low-confidence/unsupported ink is retained. Values are never guessed.",
+    "An unmarked source circle in the supplied recording is below the automatic-conversion threshold and remains ink; its crossing pole must not become a shorting wire.",
+    "Accepted DC-source drafts use the voltageSource class; AC/DC behavior, polarity and values require confirmation."
+  ],
+  "model_bytes": 2645685,
+  "sha256": "85a598200b03fb7e6a827b3a10b2d018d17ae0c092dd70b1cadaa95667a2d0f9",
+  "coreml_test": {
+    "samples": 4778,
+    "accuracy": 0.9148179154457933,
+    "accepted": 738,
+    "accepted_precision": 0.9051490514905149,
+    "symbol_recall": 0.5538971807628524,
+    "classes": {
+      "other": {
+        "samples": 3572,
+        "accuracy": 0.9515677491601344,
+        "accepted": 0,
+        "precision": 0,
+        "recall": 0.0
+      },
+      "resistor": {
+        "samples": 482,
+        "accuracy": 0.8526970954356846,
+        "accepted": 349,
+        "precision": 0.9684813753581661,
+        "recall": 0.7012448132780082
+      },
+      "capacitor": {
+        "samples": 170,
+        "accuracy": 0.9235294117647059,
+        "accepted": 147,
+        "precision": 0.8435374149659864,
+        "recall": 0.7294117647058823
+      },
+      "polarizedCapacitor": {
+        "samples": 141,
+        "accuracy": 0.6666666666666666,
+        "accepted": 15,
+        "precision": 0.9333333333333333,
+        "recall": 0.09929078014184398
+      },
+      "inductor": {
+        "samples": 18,
+        "accuracy": 0.5555555555555556,
+        "accepted": 9,
+        "precision": 0.6666666666666666,
+        "recall": 0.3333333333333333
+      },
+      "diode": {
+        "samples": 128,
+        "accuracy": 0.8671875,
+        "accepted": 102,
+        "precision": 0.8333333333333334,
+        "recall": 0.6640625
+      },
+      "ground": {
+        "samples": 205,
+        "accuracy": 0.6682926829268293,
+        "accepted": 82,
+        "precision": 0.8292682926829268,
+        "recall": 0.33170731707317075
+      },
+      "voltageSource": {
+        "samples": 7,
+        "accuracy": 0.7142857142857143,
+        "accepted": 0,
+        "precision": 0,
+        "recall": 0.0
+      },
+      "acVoltage": {
+        "samples": 3,
+        "accuracy": 1.0,
+        "accepted": 2,
+        "precision": 1.0,
+        "recall": 0.6666666666666666
+      },
+      "mos": {
+        "samples": 28,
+        "accuracy": 0.7857142857142857,
+        "accepted": 12,
+        "precision": 0.9166666666666666,
+        "recall": 0.39285714285714285
+      },
+      "opAmp": {
+        "samples": 24,
+        "accuracy": 0.9166666666666666,
+        "accepted": 20,
+        "precision": 1.0,
+        "recall": 0.8333333333333334
+      }
+    },
+    "confusion_matrix": [
+      [
+        3399,
+        25,
+        18,
+        21,
+        1,
+        40,
+        46,
+        4,
+        15,
+        3,
+        0
+      ],
+      [
+        58,
+        411,
+        4,
+        0,
+        5,
+        0,
+        4,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        7,
+        0,
+        157,
+        5,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        14,
+        2,
+        28,
+        94,
+        0,
+        1,
+        0,
+        0,
+        0,
+        2,
+        0
+      ],
+      [
+        4,
+        4,
+        0,
+        0,
+        10,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        17,
+        0,
+        0,
+        0,
+        0,
+        111,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        57,
+        0,
+        8,
+        1,
+        0,
+        1,
+        137,
+        0,
+        0,
+        1,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        5,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        0
+      ],
+      [
+        4,
+        0,
+        0,
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        22,
+        0
+      ],
+      [
+        2,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        22
+      ]
+    ]
+  },
+  "export_verification": {
+    "samples": 4778,
+    "top_label_agreement": 0.9905818334030976,
+    "maximum_probability_error": 0.2168487310409546,
+    "weight_precision": "FP16",
+    "host": "macOS Core ML; physical iPad not benchmarked"
+  },
+  "training_revision": "2026-10-12 connected handwriting, build 11",
+  "sampling": "Each class equal mass; other/reject 3x; ground, MOS, DC source 30% real and 70% synthetic; other classes 65% real and 35% synthetic",
+  "refinement": "Both branches resumed from build 10 weights for three 8-epoch refinements. Augmentation covers small asymmetric MOS leads, rectangular resistors with shared/missing leads, uneven ground bars and empty source circles, normalized after transform before rasterization. The supplied recording guided augmentation and a manually traced connected regression; it is not held-out device validation.",
+  "recording_regression": {
+    "input": "Approximate stroke centerlines manually traced from the owner recording; no original PKDrawing available",
+    "components": {
+      "resistor": 1,
+      "nmos": 1,
+      "ground": 2
+    },
+    "connections": [
+      "resistor bottom to MOS drain",
+      "MOS source to right ground",
+      "MOS drain to free output wire"
+    ],
+    "preserved": "unmarked left source circle and its crossing pole",
+    "physical_ipad_verified": false
+  },
+  "simulator_qa": {
+    "modelLoadsAndPredictsInApp": true,
+    "legacyRCExample": "Only the resistor converted in this simulator check; other symbols remained unconverted.",
+    "physicalPencilVerified": false
+  }
+}

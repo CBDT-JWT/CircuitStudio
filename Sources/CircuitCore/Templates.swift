@@ -23,10 +23,11 @@ public enum CircuitTemplate: String, CaseIterable, Identifiable, Sendable {
         switch self {
         case .commonSource:
             let m = add(.nmos, Point(320, 260)), r = add(.resistor, Point(330, 140), ["value": "10k"])
-            let input = add(.acVoltage, Point(120, 300), ["value": "0.55", "amplitude": "5m"]), supply = add(.voltageSource, Point(560, 140), ["value": "1.8"])
-            let g1 = add(.ground, Point(330, 360)), g2 = add(.ground, Point(120, 360)), g3 = add(.ground, Point(560, 220))
-            let vdd1 = add(.vdd, Point(330, 70)), vdd2 = add(.vdd, Point(560, 70)); let cap = add(.capacitor, Point(460, 290), ["value": "2p"]), g4 = add(.ground, Point(460, 360))
-            c.connect(m, "D", r, "2"); c.connect(r, "1", vdd1, "1"); c.connect(supply, "1", vdd2, "1"); c.connect(supply, "2", g3, "1")
+            let input = add(.acVoltage, Point(120, 300), ["value": "0.55", "amplitude": "5m"])
+            let g1 = add(.ground, Point(330, 360)), g2 = add(.ground, Point(120, 360))
+            let vdd1 = add(.vdd, Point(330, 70)); let cap = add(.capacitor, Point(460, 290), ["value": "2p"]), g4 = add(.ground, Point(460, 360))
+            c.supplyVoltages = ["VDD":"1.8", "VSS":"0"]
+            c.connect(m, "D", r, "2"); c.connect(r, "1", vdd1, "1")
             c.connect(m, "S", g1, "1"); c.connect(input, "2", g2, "1")
             c.wires.append(Wire(points: [Point(120, 260), Point(280, 260)], start: TerminalRef(input, "1"), end: TerminalRef(m, "G")))
             wire(Point(330, 200), Point(460, 200)); wire(Point(460, 200), Point(460, 250)); c.connect(cap, "2", g4, "1")
@@ -44,21 +45,20 @@ public enum CircuitTemplate: String, CaseIterable, Identifiable, Sendable {
             let r1 = add(.resistor, Point(230, 120)), r2 = add(.resistor, Point(430, 120)); let power1 = add(.vdd, Point(230, 50)), power2 = add(.vdd, Point(430, 50))
             let tail = add(.currentSource, Point(330, 330), ["value": "100u"]), ground = add(.ground, Point(330, 410))
             c.connect(m1, "D", r1, "2"); c.connect(m2, "D", r2, "2"); c.connect(r1, "1", power1, "1"); c.connect(r2, "1", power2, "1")
-            wire(Point(230, 270), Point(330, 290)); wire(Point(430, 270), Point(330, 290)); c.connect(tail, "2", ground, "1")
+            c.connect(m1,"S",tail,"1"); c.connect(m2,"S",tail,"1"); c.connect(tail, "2", ground, "1")
             c.labels = [CircuitLabel("V_{IN+}", at: Point(180, 230)), CircuitLabel("V_{IN-}", at: Point(480, 230)), CircuitLabel("V_{OUT+}", at: Point(230, 180)), CircuitLabel("V_{OUT-}", at: Point(430, 180))]
         case .currentMirror:
             let m1 = add(.nmos, Point(230, 250)), m2 = add(.nmos, Point(450, 250)); let i = add(.currentSource, Point(240, 120)), power = add(.vdd, Point(240, 50))
             let g1 = add(.ground, Point(240, 340)), g2 = add(.ground, Point(460, 340))
             c.connect(i, "1", power, "1"); c.connect(i, "2", m1, "D"); c.connect(m1, "S", g1, "1"); c.connect(m2, "S", g2, "1")
-            c.wires.append(Wire(points: [Point(240, 190), Point(170, 190), Point(170, 250), Point(190, 250)], end: TerminalRef(m1, "G")))
-            wire(Point(170, 190), Point(390, 190)); c.wires.append(Wire(points: [Point(390, 190), Point(390, 250), Point(410, 250)], end: TerminalRef(m2, "G")))
+            c.connect(m1,"D",m1,"G"); c.connect(m1,"G",m2,"G")
             c.labels = [CircuitLabel("I_{REF}", at: Point(240, 170)), CircuitLabel("I_{OUT}", at: Point(460, 210))]
         case .inverter:
             let p = add(.pmos, Point(320, 150)), n = add(.nmos, Point(320, 290)), power = add(.vdd, Point(330, 70)), ground = add(.ground, Point(330, 370))
             let input = add(.pulseSource, Point(100, 260), ["value": "0", "high": "1.8"]), inputGround = add(.ground, Point(100, 330))
-            let supply = add(.voltageSource, Point(560, 150), ["value": "1.8"]), supplyRail = add(.vdd, Point(560, 70)), supplyGround = add(.ground, Point(560, 230))
+            c.supplyVoltages = ["VDD":"1.8", "VSS":"0"]
             c.connect(p, "S", power, "1"); c.connect(p, "D", n, "D"); c.connect(n, "S", ground, "1")
-            c.connect(supply, "1", supplyRail, "1"); c.connect(supply, "2", supplyGround, "1"); c.connect(input, "2", inputGround, "1")
+            c.connect(input, "2", inputGround, "1")
             c.wires.append(Wire(points: [Point(100, 220), Point(200, 220)], start: TerminalRef(input, "1")))
             wire(Point(280, 150), Point(200, 150)); wire(Point(200, 150), Point(200, 290)); wire(Point(200, 290), Point(280, 290)); wire(Point(330, 220), Point(430, 220))
             c.labels = [CircuitLabel("V_{IN}", at: Point(200, 220)), CircuitLabel("V_{OUT}", at: Point(430, 220))]

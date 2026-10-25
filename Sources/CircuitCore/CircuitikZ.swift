@@ -63,6 +63,12 @@ public enum CircuitikZ {
         var lines: [String] = []
         for primitive in primitives {
             switch primitive {
+            case .reference(let path):
+                if let (center,radius)=path.circle { lines.append("  \\" + (path.filled ? "fill" : "draw") + " " + coordinate(center) + " circle (\(radius/60)cm);") }
+                else {
+                    let commands=path.commands.map { command -> String in switch command { case .move(let p):return coordinate(p);case .line(let p):return " -- "+coordinate(p);case .curve(let a,let b,let p):return " .. controls "+coordinate(a)+" and "+coordinate(b)+" .. "+coordinate(p);case .close:return " -- cycle" } }.joined()
+                    lines.append("  \\" + (path.filled ? "fill" : "draw") + "[line width=\(path.width*0.47)pt,line cap=\(path.cap),line join=\(path.join)] "+commands+";")
+                }
             case .line(let points):
                 lines.append("  \\draw[fill=none] " + points.map(coordinate).joined(separator: " -- ") + ";")
             case .polygon(let points, let filled):

@@ -5,7 +5,7 @@ extension UTType { static let circuit = UTType(exportedAs: "com.circuitstudio.ci
 struct CircuitFile: FileDocument {
     static var readableContentTypes: [UTType] { [.circuit] }
     var circuit: Circuit
-    init(_ circuit: Circuit = Circuit()) { self.circuit = circuit }
+    init(_ circuit: Circuit? = nil) { self.circuit = circuit ?? Circuit(title: NSLocalizedString("Untitled circuit", comment: "")) }
     init(configuration: ReadConfiguration) throws {
         let wrapper = configuration.file
         guard let data = wrapper.fileWrappers?["document.json"]?.regularFileContents ?? wrapper.regularFileContents else { throw CircuitError.message("This circuit document has no document.json file.") }
@@ -29,17 +29,32 @@ extension FocusedValues { var circuitEditor: EditorStore? { get { self[EditorFoc
 
 #if !CIRCUITSTUDIO_PREVIEW
 @main struct CircuitStudioApp: App {
+    #if os(iOS)
+    @State private var showLaunchGuide = false
+    #endif
     #if os(macOS)
     @NSApplicationDelegateAdaptor(StudioAppDelegate.self) var delegate
+    @State private var engineeringWorkspace=EngineeringWorkspace()
     #endif
     var body: some Scene {
-        DocumentGroup(newDocument: CircuitFile()) { file in WorkspaceView(document: file.$document, fileURL: file.fileURL) }
-            .commands { StudioCommands() }
-        #if os(macOS)
+        #if os(iOS)
+        WindowGroup("Circuit Studio",id:"engineering") {EngineeringWorkspaceView()}
+        // Existing .circuit documents retain their native document editor.
+        DocumentGroup(newDocument: CircuitFile()) { file in
+            WorkspaceView(document: file.$document, fileURL: file.fileURL)
+        }.commands { StudioCommands() }
+        #else
+        DocumentGroup(newDocument: CircuitFile()) { file in
+            WorkspaceView(document: file.$document, fileURL: file.fileURL)
+        }
+            .commandsRemoved()
             .defaultSize(width: 1280, height: 820)
             .defaultLaunchBehavior(.suppressed)
         #endif
         #if os(macOS)
+        Window("Engineering workspace",id:"engineering") { EngineeringWorkspaceView(workspace:engineeringWorkspace) }
+            .commands { StudioCommands(engineeringWorkspace:engineeringWorkspace) }
+            .defaultSize(width:1440,height:920).defaultLaunchBehavior(.presented)
         Settings { StudioSettings().frame(width: 460, height: 370) }
         #endif
     }
@@ -54,7 +69,7 @@ final class StudioAppDelegate: NSObject, NSApplicationDelegate {
         #endif
         // Let restored or explicitly opened documents win; otherwise start on a blank canvas.
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-            if NSDocumentController.shared.documents.isEmpty {
+            if NSDocumentController.shared.documents.isEmpty && !NSApp.windows.contains(where: { $0.isVisible }) {
                 NSDocumentController.shared.newDocument(nil)
             }
         }

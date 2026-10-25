@@ -8,7 +8,7 @@ struct SimulationSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Picker("Analysis", selection: $settings.analysis) { ForEach(Analysis.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
+                Picker("Analysis", selection: $settings.analysis) { ForEach(Analysis.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) } }
                 switch settings.analysis {
                 case .op: Text("Calculate node voltages, branch currents and MOS operating point parameters.").foregroundStyle(.secondary)
                 case .ac: TextField("Start frequency (Hz)", text: $settings.start); TextField("Stop frequency (Hz)", text: $settings.stop); Stepper("\(settings.points) points / decade", value: $settings.points, in: 5...200, step: 5)

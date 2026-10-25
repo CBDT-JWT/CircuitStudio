@@ -16,6 +16,7 @@ struct InspectorView: View {
                     ConnectorInspector(store: store, connector: connector)
                 } else if let c = store.selectedComponent {
                     HStack(spacing: 15) { SymbolPreview(kind: c.kind, theme: store.circuit.theme).frame(width: 48, height: 60).foregroundStyle(StudioStyle.accent); VStack(alignment: .leading, spacing: 5) { Text(c.name).font(.system(size: 24, weight: .medium)); Text(c.kind.title).font(.system(size: 12)).foregroundStyle(.secondary) } }
+                    if c.kind.needsSimulationModel { Text("绘图元件：暂不支持此元件的时序仿真。").font(.caption).foregroundStyle(.secondary) }
                     Divider()
                     inspectorSection("Identity") { CommitField("Reference", value: c.name) { v in store.updateComponent(c.id) { $0.name = v } } }
                     inspectorSection(c.kind.isMOS ? "Device parameters" : "Parameters") {
@@ -23,13 +24,30 @@ struct InspectorView: View {
                             ForEach([("model", "Model"), ("W", "Width"), ("L", "Length"), ("M", "Multiplicity"), ("NF", "Fingers")], id: \.0) { key, title in CommitField(title, value: c.parameters[key] ?? "") { value in store.updateComponent(c.id) { $0.parameters[key] = value } } }
                             Picker("Body", selection: Binding(get: { c.parameters["bulk"] ?? "source" }, set: { value in store.updateComponent(c.id) { $0.parameters["bulk"] = value } })) { Text("Tied to source").tag("source"); Text("External terminal").tag("external") }.font(.system(size: 12))
                         } else {
-                            ForEach(c.parameters.keys.sorted(), id: \.self) { key in CommitField(parameterTitle(key, kind: c.kind), value: c.parameters[key] ?? "") { value in store.updateComponent(c.id) { $0.parameters[key] = value } } }
+                            ForEach(c.parameters.keys.filter { !$0.hasPrefix("attached") }.sorted(), id: \.self) { key in
+                                if key == "inputs" { Picker("Input count",selection:Binding(get:{ c.parameters[key] ?? "2" },set:{ value in store.updateComponent(c.id) { $0.parameters[key]=value } })) { ForEach(["2","3","4"],id: \.self) { Text($0).tag($0) } } }
+                                else if key == "shape" { Picker("Source shape",selection:Binding(get:{ c.parameters[key] ?? "circle" },set:{ value in store.updateComponent(c.id) { $0.parameters[key]=value } })) { Text("Circle").tag("circle");Text("Diamond").tag("diamond") } }
+                                else if key == "swapInputs" { Toggle("Swap inputs",isOn:Binding(get:{ c.parameters[key] == "true" },set:{ value in store.updateComponent(c.id) { $0.parameters[key]=value ? "true" : "false" } })) }
+                                else { CommitField(parameterTitle(key,kind:c.kind),value:c.parameters[key] ?? "") { value in store.updateComponent(c.id) { $0.parameters[key]=value } } }
+                            }
                             if c.parameters.isEmpty { Text("This symbol has no simulation parameters.").font(.caption).foregroundStyle(.secondary) }
+                        }
+                    }
+                    if c.kind == .vdd || c.kind == .vss || c.kind == .powerRail {
+                        inspectorSection("Global supplies") {
+                            CommitField(c.name+" (V)",value:store.circuit.effectiveSupplyVoltages[c.name] ?? "1.8") { value in
+                                do { _ = try EngineeringUnits.parse(value); store.transaction("Edit global supply") { circuit in var supplies=circuit.effectiveSupplyVoltages;supplies[c.name]=value;circuit.supplyVoltages=supplies } }
+                                catch { store.error = error.localizedDescription }
+                            }
                         }
                     }
                     inspectorSection("Annotation") {
                         Toggle("Show reference", isOn: Binding(get: { c.showName }, set: { v in store.updateComponent(c.id) { $0.showName = v } }))
                         Toggle("Show value", isOn: Binding(get: { c.showValue }, set: { v in store.updateComponent(c.id) { $0.showValue = v } }))
+                    }
+                    inspectorSection("Label positions") {
+                        Text("Drag the name or value on the canvas to reposition it independently.").font(.caption).foregroundStyle(.secondary)
+                        Button("Reset label positions") { store.updateComponent(c.id) { $0.nameOffset = nil; $0.valueOffset = nil } }
                     }
                     inspectorSection("Transform") {
                         HStack { Button { store.transformSelection("Rotate") } label: { Label("Rotate", systemImage: "rotate.right") }; Button { store.transformSelection("Flip horizontal") } label: { Image(systemName: "arrow.left.and.right.righttriangle.left.righttriangle.right") }.help("Flip horizontal"); Button { store.transformSelection("Flip vertical") } label: { Image(systemName: "arrow.up.and.down.righttriangle.up.righttriangle.down") }.help("Flip vertical") }.buttonStyle(.bordered).controlSize(.small)
@@ -44,18 +62,39 @@ struct InspectorView: View {
                         Toggle("Electrical net label", isOn: Binding(get: { label.isNet }, set: { v in store.transaction("Change label type") { if let i = $0.labels.firstIndex(where: { $0.id == label.id }) { $0.labels[i].isNet = v } } }))
                     }
                     Button("Delete label", role: .destructive) { store.deleteSelection() }
-                } else if store.selectedWire != nil {
+                } else if let wire=store.selectedWire {
+                    if let name=wire.powerNet {
+                        inspectorSection("Power Rail") {
+                            CommitField("Net name",value:name) { value in let name=MathLabel.netName(value);guard !name.isEmpty else { return };store.transaction("Rename power rail") { c in if let i=c.wires.firstIndex(where:{ $0.id == wire.id }) { c.wires[i].powerNet=name } } }
+                            CommitField(name+" (V)",value:store.circuit.effectiveSupplyVoltages[name] ?? "1.8") { value in
+                                do { _=try EngineeringUnits.parse(value);store.transaction("Edit global supply") { c in var values=c.effectiveSupplyVoltages;values[name]=value;c.supplyVoltages=values } } catch { store.error=error.localizedDescription }
+                            }
+                            Text("A rail is an editable conductor. Pins and wire ends on its span connect; bare crossings stay separate.").font(.caption).foregroundStyle(.secondary)
+                            Button("Reset label positions") { store.transaction("Reset rail label") { c in if let i=c.wires.firstIndex(where:{ $0.id == wire.id }) { c.wires[i].labelOffset=nil } } }
+                        }
+                    }
                     inspectorSection("Wire") { Text("Orthogonal route").font(.callout); Text("Attached endpoints follow their components. Bare crossings remain electrically separate; endpoints form junctions.").font(.caption).foregroundStyle(.secondary) }
                     Button("Delete wire", role: .destructive) { store.deleteSelection() }
                 } else {
-                    VStack(alignment: .leading, spacing: 8) { Image(systemName: "doc.text.image").font(.system(size: 30, weight: .light)).foregroundStyle(StudioStyle.accent); Text(store.selection.count > 1 ? "\(store.selection.count) objects" : "Your next idea,\nbeautifully drawn.").font(.system(size: 20, weight: .medium)).lineSpacing(3); Text("Select an object to edit its properties.").font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
+                    VStack(alignment: .leading, spacing: 8) { Image(systemName: "doc.text.image").font(.system(size: 30, weight: .light)).foregroundStyle(StudioStyle.accent); Text(store.selection.count > 1 ? String(format: NSLocalizedString("%ld objects selected", comment: ""), store.selection.count) : NSLocalizedString("Document settings", comment: "")).font(.system(size: 20, weight: .medium)).lineSpacing(3); Text("Select an object to edit its properties.").font(.system(size: 12)).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true) }
                     Divider()
-                    inspectorSection("Document") { CommitField("Title", value: store.circuit.title) { title in store.transaction("Rename document") { $0.title = title } }; Picker("Symbol style", selection: Binding(get: { store.circuit.theme }, set: { theme in store.transaction("Change symbol style") { $0.theme = theme } })) { ForEach(SymbolTheme.allCases, id: \.self) { Text($0.rawValue).tag($0) } }; Picker("Diagram mode", selection: Binding(get: { store.circuit.mode }, set: { mode in store.transaction("Change diagram mode") { $0.mode = mode } })) { ForEach(DiagramMode.allCases, id: \.self) { Text($0.rawValue).tag($0) } } }
+                    inspectorSection("Document") { CommitField("Title", value: store.circuit.title) { title in store.transaction("Rename document") { $0.title = title } }; Picker("Symbol style", selection: Binding(get: { store.circuit.theme }, set: { theme in store.transaction("Change symbol style") { $0.theme = theme } })) { ForEach(SymbolTheme.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) } }; Picker("Diagram mode", selection: Binding(get: { store.circuit.mode }, set: { mode in store.transaction("Change diagram mode") { $0.mode = mode } })) { ForEach(DiagramMode.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) } } }
+                    inspectorSection("Global supplies") {
+                        Text("Supply voltages are shared by every marker with the same name. An ideal source is added automatically for simulation.").font(.caption).foregroundStyle(.secondary)
+                        ForEach(store.circuit.effectiveSupplyVoltages.keys.sorted(),id:\.self) { name in
+                            CommitField(name+" (V)",value:store.circuit.effectiveSupplyVoltages[name] ?? "0") { value in
+                                do { _ = try EngineeringUnits.parse(value); store.transaction("Edit global supply") { c in var supplies=c.effectiveSupplyVoltages;supplies[name]=value;c.supplyVoltages=supplies } }
+                                catch { store.error = error.localizedDescription }
+                            }
+                        }
+                    }
                     inspectorSection("Canvas") { Toggle("Show grid", isOn: $store.showGrid); Toggle("Snap to grid", isOn: $store.snapEnabled); Button { store.cleanUp() } label: { Label("Clean up circuit", systemImage: "sparkles") }.buttonStyle(.bordered).controlSize(.small) }
                     if store.selection.count > 1 { inspectorSection("Alignment") { Button("Align horizontally") { store.align("horizontal") }; Button("Align vertically") { store.align("vertical") }; Button("Duplicate selection") { store.duplicateSelection() } } }
                     if store.supportsSimulation { inspectorSection("Simulation") { HStack { Text("Analysis"); Spacer(); Text(store.circuit.simulation.analysis == .ac ? "AC" : store.circuit.simulation.analysis.rawValue).foregroundStyle(.secondary) }; Button("Configure analysis…") { store.showSimulationSettings = true }; Button("Model library…") { store.showModels = true }; if store.simulationResult?.analysis == .op { Toggle("Annotate operating points", isOn: $store.annotateOP) } } }
                     inspectorSection("Quick start") { shortcut(store.supportsSimulation ? "Add component" : "Add shape or port", "A"); shortcut(store.supportsSimulation ? "Draw wire" : "Draw connector", "W"); shortcut("Rotate", "R"); shortcut("Fit to canvas", "F") }
                 }
+                if !store.selection.isEmpty { Divider();ObjectAppearanceControls(store:store) }
+                Divider();PublicationAppearanceControls(store:store)
                 Divider()
                 Button("Privacy policy & acknowledgements") { showPrivacy = true }
                     .font(.footnote).buttonStyle(.borderless)
@@ -63,8 +102,8 @@ struct InspectorView: View {
         }.background(.regularMaterial)
             .sheet(isPresented: $showPrivacy) { PrivacyView() }
     }
-    func inspectorSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View { VStack(alignment: .leading, spacing: 12) { Text(title).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary); content() } }
-    func shortcut(_ title: String, _ key: String) -> some View { HStack { Text(title).foregroundStyle(.secondary); Spacer(); Text(key).font(.system(size: 10, design: .monospaced)).padding(.horizontal, 6).padding(.vertical, 3).background(.quaternary, in: RoundedRectangle(cornerRadius: 4)) } }
+    func inspectorSection<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View { VStack(alignment: .leading, spacing: 12) { Text(LocalizedStringKey(title)).font(.system(size: 11, weight: .semibold)).foregroundStyle(.secondary); content() } }
+    func shortcut(_ title: String, _ key: String) -> some View { HStack { Text(LocalizedStringKey(title)).foregroundStyle(.secondary); Spacer(); Text(key).font(.system(size: 10, design: .monospaced)).padding(.horizontal, 6).padding(.vertical, 3).background(.quaternary, in: RoundedRectangle(cornerRadius: 4)) } }
     func parameterTitle(_ key: String, kind: ComponentKind) -> String { if key == "value" { return kind == .resistor ? "Resistance" : [.capacitor, .polarizedCapacitor].contains(kind) ? "Capacitance" : "Value" }; return ["ac": "AC magnitude", "model": "Model", "amplitude": "Amplitude", "frequency": "Frequency", "high": "High level", "width": "Pulse width", "period": "Period", "gain": "Open-loop gain"][key] ?? key }
 }
 struct CommitField: View {
@@ -72,5 +111,5 @@ struct CommitField: View {
     @State private var draft: String
     @FocusState private var focused: Bool
     init(_ title: String, value: String, commit: @escaping (String) -> Void) { self.title = title; self.value = value; self.commit = commit; _draft = State(initialValue: value) }
-    var body: some View { HStack(spacing: 10) { Text(title).foregroundStyle(.secondary); Spacer(minLength: 4); TextField(title, text: $draft).font(.system(size: 12, design: .monospaced)).multilineTextAlignment(.trailing).textFieldStyle(.roundedBorder).frame(maxWidth: 125).focused($focused).onSubmit { if draft != value { commit(draft) } }.onChange(of: focused) { _, v in if !v && draft != value { commit(draft) } }.onChange(of: value) { _, v in draft = v } }.accessibilityElement(children: .contain) }
+    var body: some View { HStack(spacing: 10) { Text(LocalizedStringKey(title)).foregroundStyle(.secondary); Spacer(minLength: 4); TextField(title, text: $draft).font(.system(size: 12, design: .monospaced)).multilineTextAlignment(.trailing).textFieldStyle(.roundedBorder).frame(maxWidth: 125).focused($focused).onSubmit { if draft != value { commit(draft) } }.onChange(of: focused) { _, v in if !v && draft != value { commit(draft) } }.onChange(of: value) { _, v in draft = v } }.accessibilityElement(children: .contain) }
 }

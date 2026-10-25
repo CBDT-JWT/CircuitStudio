@@ -1,0 +1,57 @@
+{
+  "version": "1.3.0",
+  "build": 32,
+  "implementation": "independent editor v1",
+  "referenceCodeOrArtworkBundled": false,
+  "readyForLocalPreview": true,
+  "readyForStoreSubmission": false,
+  "editorResourceManifestSHA256": "922d08c8ca9d4c644bd41d88204913423346ebd139d73fa61fd92bb008c61845",
+  "previewZipSHA256": "8b9ed85d638ac7eac3282c42ca193b059b0baa5c480f5e0a8b1371645a458501",
+  "validated": {
+    "libraryEntries": 78,
+    "independentModelTests": 16,
+    "swiftTestingTests": 81,
+    "xctestTests": 23,
+    "nativeEditorInteractionChecks": 66,
+    "nativeWebBridgeChecks": 11,
+    "courseConfigurations": 155,
+    "actualNativeAnalyses": 211,
+    "courseFailures": 0,
+    "iPadActualBridgeRectifierSamples": 5008,
+    "iPadPortraitDrawerClear": true,
+    "manualInlineParameterChange": "1k to 4.7k",
+    "manualContinuousPlacementEscapeUndoXY": true,
+    "liveRelayHealth": "ok",
+    "livePrivacyPolicyMatchesSource": true,
+    "signedMacAndIOSArchives": true
+  },
+  "notValidated": [
+    "Independent version live provider conversation with the existing Keychain identity",
+    "Actual StoreKit purchase/restore on the independent version",
+    "iPad physical landscape rotation; the simulator geometry request remained portrait",
+    "iPhone UI acceptance"
+  ],
+  "store": {
+    "macOSDraft": "1.3.0 Prepare for Submission, bilingual metadata saved, no build selected",
+    "iOSDraft": "1.3.0 Prepare for Submission, bilingual metadata saved; old Build6 detached",
+    "Build31": "Previously uploaded iOS binary is retired and has not been submitted",
+    "Build32Uploaded": false,
+    "submitted": false,
+    "subscriptionProduct": "com.circuitstudio.app.ai.monthly",
+    "subscriptionPeriod": "1 month",
+    "availableTerritory": "China mainland",
+    "verifiedCNYPrice": 8,
+    "subscriptionDescriptionQuotaBannerRemoved": true,
+    "blocker": "Xcode export reported No Accounts and missing Mac/iOS distribution signing identities. Signing archives succeeded, distribution export did not."
+  },
+  "evidenceDirectory": "~/Library/Caches/CircuitStudioQA/Build32",
+  "archivesDirectory": "~/Library/Caches/CircuitStudioDistribution-1.3.0-build32/Archives",
+  "retiredReferenceBackup": "~/Library/Caches/CircuitStudioQA/Build32/retired-reference",
+  "commands": [
+    "node --test Engineering/Independent/model.test.mjs",
+    "python3 scripts/verify_independent_courses.py EVIDENCE_DIRECTORY",
+    "python3 scripts/verify_independent.py EVIDENCE_DIRECTORY",
+    "swift test --scratch-path EXTERNAL_CACHE",
+    "python3 scripts/verify_editor.py"
+  ]
+}

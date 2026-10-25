@@ -30,8 +30,8 @@ struct ConnectorInspector: View {
                 CommitField("Label X offset", value: String(format: "%g", connector.labelOffset?.x ?? 0)) { v in if let value = Double(v), value.isFinite { store.updateConnector(connector.id) { $0.labelOffset = Point(value, $0.labelOffset?.y ?? 0) } } }
                 CommitField("Label Y offset", value: String(format: "%g", connector.labelOffset?.y ?? 0)) { v in if let value = Double(v), value.isFinite { store.updateConnector(connector.id) { $0.labelOffset = Point($0.labelOffset?.x ?? 0, value) } } }
             }
-            Picker("Arrowheads", selection: Binding(get: { connector.arrows }, set: { v in store.updateConnector(connector.id) { $0.arrows = v } })) { ForEach(FigureArrows.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
-            Picker("Route", selection: Binding(get: { connector.route }, set: { v in store.updateConnector(connector.id) { $0.route = v } })) { ForEach(FigureRoute.allCases, id: \.self) { Text($0.rawValue).tag($0) } }
+            Picker("Arrowheads", selection: Binding(get: { connector.arrows }, set: { v in store.updateConnector(connector.id) { $0.arrows = v } })) { ForEach(FigureArrows.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) } }
+            Picker("Route", selection: Binding(get: { connector.route }, set: { v in store.updateConnector(connector.id) { $0.route = v } })) { ForEach(FigureRoute.allCases, id: \.self) { Text(LocalizedStringKey($0.rawValue)).tag($0) } }
             FigureStyleControls(style: connector.style, allowFill: false) { style in store.updateConnector(connector.id) { $0.style = style } }
             Text("Drag either endpoint to reconnect. These arrows annotate a figure and do not create electrical nets.").font(.caption).foregroundStyle(.secondary)
             Button("Delete arrow", role: .destructive) { store.deleteSelection() }
@@ -49,7 +49,9 @@ struct FigureStyleControls: View {
         Toggle("Dashed line", isOn: Binding(get: { style.dashed }, set: { v in var updated = style; updated.dashed = v; commit(updated) }))
         Picker("Line color", selection: Binding(get: { style.color ?? "" }, set: { v in var updated = style; updated.color = v.isEmpty ? nil : v; commit(updated) })) { ForEach(colors, id: \.1) { Text($0.0).tag($0.1) } }
         if allowFill { Picker("Fill", selection: Binding(get: { style.fill ?? "" }, set: { v in var updated = style; updated.fill = v.isEmpty ? nil : v; commit(updated) })) { ForEach(fills, id: \.1) { Text($0.0).tag($0.1) } } }
-        Text("Publication mode exports colors in black and grayscale.").font(.caption).foregroundStyle(.secondary)
+        HexColorControl(title:"Line color",value:style.color) { value in var updated=style;updated.color=value;commit(updated) }
+        HexColorControl(title:"Label color",value:style.textColor) { value in var updated=style;updated.textColor=value;commit(updated) }
+        if allowFill { HexColorControl(title:"Fill",value:style.fill) { value in var updated=style;updated.fill=value;commit(updated) } }
     }
 }
 struct CommitTextEditor: View {

@@ -2,10 +2,12 @@ import SwiftUI
 
 enum AppPrivacy {
     static let sections: [(String, String)] = [
-        ("No developer data collection", "Circuit Studio does not require an app account, include advertising or analytics, or track you across apps and websites."),
+        ("No tracking", "Drawing and simulation do not require an app account. Circuit Studio does not include advertising or analytics, or track you across apps and websites."),
         ("Software updates", "The direct-download Mac build checks a signed GitHub release feed and downloads signed updates. It does not send circuit documents or simulation results. Automatic checking can be disabled in settings. Sparkle system profiling is disabled."),
-        ("Your documents", "Circuit diagrams, figures, labels, models and previews are stored in the files you create. We do not receive these files. If you save them in iCloud Drive, Apple handles storage and synchronization under your Apple account and settings."),
+        ("Your documents", "Circuit diagrams, figures, labels, models and previews are stored in the files you create. If you save them in iCloud Drive, Apple handles storage and synchronization under your Apple account and settings. Choosing a cloud AI feature sends the selected circuit context or image as described below."),
         ("Local simulation", "SPICE analyses run on your device using the bundled ngspice engine. Circuit data and simulation results are not sent to a remote simulation service."),
+        ("AI features", "Offline symbol recognition and OCR process selected images on your device. CircuitAI sends the current circuit, relevant waveform data, messages and selected images through the developer relay to DeepSeek after your consent. Successful replies and tool arguments are cached to prevent duplicate requests; entries older than 24 hours are removed when further requests are processed. Replies may repeat information from the circuit. DeepSeek handles submitted content under its own privacy practices."),
+        ("Subscriptions and offer codes", "App Store purchases and offer-code redemption are handled by Apple. The service verifies signed subscription transactions with Apple and stores subscription identifiers and usage counters. The developer does not receive your payment-card details. Offer codes are generated and managed by the developer in App Store Connect."),
         ("Export and sharing", "You choose when and where to export or share. CircuitikZ exports include editable circuit data for re-import. Files shared with another app or service are handled according to that recipient's privacy practices."),
         ("Settings and file access", "Appearance preferences are stored locally. File access is granted through system document pickers. Circuit Studio does not request access to your contacts, location, microphone or camera."),
         ("Support", "Support correspondence is voluntary and separate from app usage. Avoid including confidential circuit data unless you intend to share it with the developer.")
@@ -34,6 +36,9 @@ struct PrivacyView: View {
                     }
                     if let url = AppPrivacy.url(for: "CSPrivacyPolicyURL") { Link("Privacy policy on the web", destination: url) }
                     if let url = AppPrivacy.url(for: "CSSupportURL") { Link("Contact and support", destination: url) }
+                    DisclosureGroup("Fonts, Markdown and public model notices") {
+                        Text("Metropolis fonts: Unlicense. Markdown-it and KaTeX: MIT. GF180MCU and SKY130 public model packets: Apache-2.0. Their license files and source notices are included with the app. The editor and schematic symbols are independently implemented for Circuit Studio.").font(.footnote).textSelection(.enabled)
+                    }
                     DisclosureGroup("ngspice acknowledgements") { Text(AppPrivacy.license).font(.footnote).textSelection(.enabled) }; DisclosureGroup("Sparkle acknowledgements") { Text(AppPrivacy.sparkleLicense).font(.footnote).textSelection(.enabled) }
                 }.frame(maxWidth: 640, alignment: .leading).padding(24)
             }.navigationTitle("Privacy policy")

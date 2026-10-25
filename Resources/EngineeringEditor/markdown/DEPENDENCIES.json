@@ -1,0 +1,14 @@
+[
+  {
+    "package": "markdown-it",
+    "version": "14.1.0",
+    "source": "https://registry.npmjs.org/markdown-it/-/markdown-it-14.1.0.tgz",
+    "sha256": "7c4fab4d4d39fe98206a7fbbed4b1e3578f2b70b6b69d309413e33eec140e19f"
+  },
+  {
+    "package": "katex",
+    "version": "0.19.1",
+    "source": "https://registry.npmjs.org/katex/-/katex-0.19.1.tgz",
+    "sha256": "24da5a599eb2fcede2e270b99a6ff48bca816beecc95feeb84e8cccbd1bb34fd"
+  }
+]
