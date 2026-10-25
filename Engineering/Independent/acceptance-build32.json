@@ -33,7 +33,8 @@
     "Actual StoreKit purchase/restore on the independent version",
     "iPad physical landscape rotation; the simulator geometry request remained portrait",
     "iPhone UI acceptance",
-    "Full legacy hierarchy import outside the saved bridge fixture"
+    "Full legacy hierarchy import outside the saved bridge fixture",
+    "Native macOS Command-O/Open/Save dialog end-to-end; file service and serialized reopen were checked separately"
   ],
   "store": {
     "macOSDraft": "1.3.0 Prepare for Submission, bilingual metadata saved, no build selected",
