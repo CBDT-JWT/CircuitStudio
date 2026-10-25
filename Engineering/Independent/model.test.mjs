@@ -36,3 +36,9 @@ test('renaming child ports updates parent pins and attached wires atomically',()
  const parent=store.project.cells[0];assert.equal(parent.components[0].parameters.ports[0],'INPUT');assert(parent.wires.some(w=>w.end?.pinName==='INPUT'));
  assert.match(netlist(store.project),/\.subckt FILTER INPUT OUT/);store.undo();assert.equal(store.project.cells[0].components[0].parameters.ports[0],'IN');
 });
+
+test('parameterized subcircuit headers do not invent a PARAMS pin',()=>{const p=parseSpice('X1 IN OUT FILTER R=2k\n.subckt FILTER IN OUT PARAMS: R=1k\nR1 IN OUT {R}\n.ends FILTER');assert.equal(p.cells[0].components[0].parameters.ports.length,2);assert.equal(p.cells[0].components[0].parameters.R,'2k');assert.match(netlist(p),/X1 .*FILTER R=2k/);});
+
+test('MOS instance geometry and finger parameters survive SPICE round trips',()=>{const p=parseSpice('M1 OUT IN 0 0 NMOS W=10u L=180n NF=4 AD=2p');assert.match(netlist(p),/NF=4 AD=2p/);});
+
+test('an explicitly selected model corner takes precedence over the project fallback packet',async()=>{const tab={store:new ProjectStore(),sessionID:uid(),configuration:defaultConfiguration()};tab.store.project.modelPacket='gf180-tt';tab.configuration.models='* CIRCUIT_STUDIO_GF180MCU_FF\n.model selected nmos level=54';const agent=editorAgent({tab:()=>tab,changed:()=>{},image:async()=>'',loadPacket:async()=>{throw Error('Must not overwrite an explicit model choice');}});const result=await agent('simulation_payload',{},stampFor(tab));assert.equal(result.configuration.models,tab.configuration.models);});

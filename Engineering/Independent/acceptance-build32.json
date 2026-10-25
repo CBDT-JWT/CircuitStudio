@@ -5,11 +5,11 @@
   "referenceCodeOrArtworkBundled": false,
   "readyForLocalPreview": true,
   "readyForStoreSubmission": false,
-  "editorResourceManifestSHA256": "922d08c8ca9d4c644bd41d88204913423346ebd139d73fa61fd92bb008c61845",
-  "previewZipSHA256": "8b9ed85d638ac7eac3282c42ca193b059b0baa5c480f5e0a8b1371645a458501",
+  "editorResourceManifestSHA256": "b287a5b32bed55528906d8556e15c85ed790646f5969f80ac3277c1e93a4f803",
+  "previewZipSHA256": "b949c60e7c9d15f9e5ab825707de2897e9cfa2e9d522f6128c071b61c489a276",
   "validated": {
     "libraryEntries": 78,
-    "independentModelTests": 16,
+    "independentModelTests": 19,
     "swiftTestingTests": 81,
     "xctestTests": 23,
     "nativeEditorInteractionChecks": 66,
@@ -23,13 +23,17 @@
     "manualContinuousPlacementEscapeUndoXY": true,
     "liveRelayHealth": "ok",
     "livePrivacyPolicyMatchesSource": true,
-    "signedMacAndIOSArchives": true
+    "signedMacAndIOSArchives": true,
+    "unexpectedFilesInSignedArchives": 0,
+    "unchangedValidatedCourseDecks": 155,
+    "packagingUnknownFileGuard": true
   },
   "notValidated": [
     "Independent version live provider conversation with the existing Keychain identity",
     "Actual StoreKit purchase/restore on the independent version",
     "iPad physical landscape rotation; the simulator geometry request remained portrait",
-    "iPhone UI acceptance"
+    "iPhone UI acceptance",
+    "Full legacy hierarchy import outside the saved bridge fixture"
   ],
   "store": {
     "macOSDraft": "1.3.0 Prepare for Submission, bilingual metadata saved, no build selected",
@@ -53,5 +57,12 @@
     "python3 scripts/verify_independent.py EVIDENCE_DIRECTORY",
     "swift test --scratch-path EXTERNAL_CACHE",
     "python3 scripts/verify_editor.py"
+  ],
+  "pendingStoreSteps": [
+    "Restore usable Xcode account and distribution signing identities",
+    "Export and upload independent Build32 for both platforms",
+    "Select Build32 and refresh store screenshots",
+    "Verify App Store privacy declarations and attach the first subscription",
+    "Submit the new versions for review"
   ]
 }
