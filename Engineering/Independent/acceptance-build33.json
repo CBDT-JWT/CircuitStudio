@@ -6,7 +6,7 @@
   "referenceVectorArtworkBundled": true,
   "drawingAuthorWatermark": false,
   "readyForLocalPreview": true,
-  "readyForStoreSubmission": false,
+  "readyForStoreSubmission": true,
   "validated": {
     "exactPaletteSVGs": 78,
     "exactDefaultCanvasGlyphsIncludingFormulaAndDFFPinText": 67,
@@ -108,23 +108,48 @@
   "store": {
     "build32UploadedBothPlatforms": true,
     "build32Superseded": true,
-    "build33Uploaded": false,
-    "submitted": false,
-    "selectedBuild": null,
+    "build33Uploaded": true,
+    "submitted": true,
+    "selectedBuild": 33,
     "reviewNotes": "Build33 saved on iOS and macOS",
     "privacyDeclarations": "Five linked app-functionality categories published and verified on 2026-10-26; no tracking",
-    "blocker": "Mac locked; export/upload returned App Store Connect account access error. Updated Apple Developer Program License Agreement remains for user review and acceptance.",
-    "graphicsLicense": "AGPL-3.0 reference graphics notices preserved. Additional App Store redistribution permission not independently verified."
+    "blocker": null,
+    "graphicsLicense": "AGPL-3.0 reference graphics notices preserved. Additional App Store redistribution permission not independently verified.",
+    "status": "Both macOS and iOS/iPadOS 1.3.0 (33) Waiting for Review",
+    "appleProgramAgreement": "Pending agreement banner cleared after user action; authenticated upload succeeded",
+    "submissionIDs": {
+      "iOS": "3af6b16c-d780-42dc-82df-7a2d7cd0770f",
+      "macOS": "9f8aaeff-041c-426e-bce4-e313ee4df2e0"
+    },
+    "submittedItems": {
+      "iOS": [
+        "1.3.0 (33)",
+        "com.circuitstudio.app.ai.monthly",
+        "subscription group 22510419"
+      ],
+      "macOS": [
+        "1.3.0 (33)"
+      ]
+    },
+    "automaticReleaseAfterApproval": true,
+    "storefrontLive": false,
+    "screenshots": "Updated Mac, iPad 13-inch and two iPhone size groups; smaller sizes and Chinese localization inherit applicable new assets",
+    "subscriptionReviewScreenshot": "Shipping SwiftUI connection form rendered without a transaction; 640x920 accepted by App Store Connect",
+    "subscriptionGroupNames": {
+      "zh-Hans": "CircuitAI 电路助手",
+      "en-US": "CircuitAI"
+    },
+    "technicalSubmissionAcceptedDoesNotEstablishLegalClearance": true,
+    "proof": [
+      "~/Library/Caches/CircuitStudioQA/Build33/ios-submitted-three-items.png",
+      "~/Library/Caches/CircuitStudioQA/Build33/macos-submitted.png"
+    ]
   },
   "evidenceDirectory": "/Users/weitaojiang/Library/Caches/CircuitStudioQA/Build33",
   "archivesDirectory": "/Users/weitaojiang/Library/Caches/CircuitStudioDistribution-1.3.0-build33/Archives",
   "editorResourceManifestSHA256": "373e3e197d2322ebadef50ffdf9c6cfb4849b7ebce4022b735f5c4c72da22d92",
   "previewZipSHA256": "80e7ab36eb0789485f0e66233617a828ce34ab06f53abcb906272fcc37e2f84e",
   "pendingStoreSteps": [
-    "Restore usable App Store Connect authentication and review updated Apple Developer agreement",
-    "Refresh screenshots and finish subscription review attachment",
-    "Resolve reference-artwork redistribution eligibility",
-    "Upload and select Build33 on both platforms",
-    "Submit versions for App Review"
+    "Apple App Review; both versions configured for automatic release after approval"
   ]
 }
