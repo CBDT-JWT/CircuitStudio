@@ -1,0 +1,370 @@
+{
+  "source": "https://github.com/cascode-ai/analog-canvas",
+  "commit": "3e1bf86b3324dfcfaf65785160415a95b991da91",
+  "license": "AGPL-3.0",
+  "content": "Symbol vector geometry and library SVG artwork only. No upstream editor executable code.",
+  "capturedPalette": "https://analog-canvas.tokenzhang.com/editor",
+  "symbols": {
+    "nmos": {
+      "sourceID": "nmos",
+      "sha256": "fb9319f853728f62a7caec46c840708c5310754c0bd6121f52acd7f1f25240ba"
+    },
+    "pmos": {
+      "sourceID": "pmos",
+      "sha256": "d47edcad0e5126d3604535addff16998e6eda62974d615d56626fca5401f6078"
+    },
+    "npn": {
+      "sourceID": "npn",
+      "sha256": "a0930f701b9748276e16a072cb3d4d175a672148949b286385c36f8d7946bd3b"
+    },
+    "pnp": {
+      "sourceID": "pnp",
+      "sha256": "21f59235e1f91434627b4ca775024a89b665e5a62d95ac253cefe2cda27d8bf7"
+    },
+    "resistor": {
+      "sourceID": "resistor",
+      "sha256": "284fc8293f1d36fafca27a14f4ec93c8a2dee040bf9076b88c74d4010bbbbb87"
+    },
+    "capacitor": {
+      "sourceID": "capacitor",
+      "sha256": "397068d9c602a0354d8bfd6c0e7cd7e6146872c971907201931d75ef5abe476b"
+    },
+    "inductor": {
+      "sourceID": "inductor-compact",
+      "sha256": "be99fcb9ea5269abbcd24cd183f3db9f9653be3c7817816149305b03c38d3a7b"
+    },
+    "inductor-large": {
+      "sourceID": "inductor",
+      "sha256": "2074ab07808283b1b29b8e148bf6c747670040ca683decb390de88b353b886e5"
+    },
+    "vdd-port": {
+      "sourceID": "vdd-port",
+      "sha256": "7189afaa790b3f11083e9ee40fcb6c47b88749a21ed0e51995f9543294c21982"
+    },
+    "power-rail": {
+      "sourceID": "vdd",
+      "sha256": "609c12ac8b528925a43a6493d5322d0fbd4f1f3235385054212adf6929b7acd4"
+    },
+    "ground": {
+      "sourceID": "ground",
+      "sha256": "12a44b600e024cce24fefed3125936eff3ec904f77df62653f650ca05ab83d50"
+    },
+    "no-connect": {
+      "sourceID": "no-connect",
+      "sha256": "e5bd284e35c3b447603dcacc8a056b105407d79bc0239d42959830f0cf31ee62"
+    },
+    "battery": {
+      "sourceID": "battery",
+      "sha256": "71e0a0582177b13d586d5958303eabfedb75bb907022afafe3c2fc8d77a23cbe"
+    },
+    "bias-port": {
+      "sourceID": "port-filled",
+      "sha256": "fe7199a0c5ceb23d8838e69f9adf1ce030861075518442ff1a222b74da853cef"
+    },
+    "cell-pin": {
+      "sourceID": "port",
+      "sha256": "3f8aa0d192cf6032c06de46359eba2bc3397d8de404fecc7f50f40ce7182f7cc"
+    },
+    "voltage-source": {
+      "sourceID": "voltage-source",
+      "sha256": "86b518a6e22fd961633f55948c3ba86f1c5c0a636bf514b0b26cec652974c8f3"
+    },
+    "current-source": {
+      "sourceID": "current-source",
+      "sha256": "62f8a63915596ca97400fc3ba8a2127c4a2c41468764e598901cf7c5701594a0"
+    },
+    "vcvs": {
+      "sourceID": "vcvs",
+      "sha256": "8cd195dec387a5e7f3ea7949384be59387a66bc7962b64f7f1243174f026bfd9"
+    },
+    "vccs": {
+      "sourceID": "vccs",
+      "sha256": "1bcac2894365fd6d308894fa11c9c872c7dab44511813b67ad342c8c23040d85"
+    },
+    "cccs": {
+      "sourceID": "cccs",
+      "sha256": "d8f9895d979302b5ce5db1b2c56c1309f1a1b2831e9659e0fee7f8887a5ed59a"
+    },
+    "ccvs": {
+      "sourceID": "ccvs",
+      "sha256": "37bb4c5dac2470fcad195086bf1daf168e00274624f1dc19f875a6bcc738606d"
+    },
+    "open-switch": {
+      "sourceID": "ideal-switch",
+      "sha256": "0e7f05c50a6ee3b425308f2bca81452e713d57775e3672ac5fa8724b1c2ee44e"
+    },
+    "closed-switch": {
+      "sourceID": "closed-switch",
+      "sha256": "2229faf2f463ccf30dd1d2ba345d43cca78be1c3eeeb6861f11682c4878be38d"
+    },
+    "controlled-switch": {
+      "sourceID": "externally-controlled-switch",
+      "sha256": "dd61fcdb90396ebdeb43e4bfee68315ca0baf6710fa1eb2979294f3ef369672e"
+    },
+    "voltage-switch": {
+      "sourceID": "voltage-controlled-switch",
+      "sha256": "8a0b9f82ef5ee58835bc2a59815b57bac05f1b52319ca936abe3a2735ec1ba69"
+    },
+    "chopper": {
+      "sourceID": "chopper",
+      "sha256": "77967abc0367d5e4e06b711ba46d63703c9811f3dff410922a906018c9af9897"
+    },
+    "simple-switch": {
+      "sourceID": "simple-switch",
+      "sha256": "5ca75eb496d3585f5778f279c042c4f31ef0c9f2bc7ceb27e3e9f6703037f122"
+    },
+    "spdt-switch": {
+      "sourceID": "spdt-switch",
+      "sha256": "2b5a8dc9383b0a709dbc7c61d40d8680293f292f7b87bf7dc4adb83624839b69"
+    },
+    "opamp": {
+      "sourceID": "opamp-wide",
+      "sha256": "bcd5972c54e3d6cb2e5b06c782164729501b89181b366ddd6936e6adafdef513"
+    },
+    "opamp-small": {
+      "sourceID": "opamp",
+      "sha256": "05e71c039f599fc9881b64da52c9738d2a271531f16c3f96dea602a28eed0d71"
+    },
+    "fdamp": {
+      "sourceID": "opamp-differential-wide-crossed",
+      "sha256": "ae6a742eab038b5e881cb33d60f1efb67abbe1b8e728c131429a03f4b52b96b4"
+    },
+    "fdamp-small": {
+      "sourceID": "opamp-differential-crossed",
+      "sha256": "65f27690df1d2aaf23d924b4eb5c4909e8dd301b6986785523fa20f7952e61c8"
+    },
+    "voltage-amplifier": {
+      "sourceID": "voltage-amplifier",
+      "sha256": "76a52223c9c927768da9989eb1d4098f773d193e4cbffec61b9d78452a9cf3f7"
+    },
+    "transconductance": {
+      "sourceID": "transconductance",
+      "sha256": "6353a0c6f1a52d0e846fb84813f5f47059c04069195ac36687d9f3374b5144de"
+    },
+    "differential-transconductance": {
+      "sourceID": "differential-transconductance",
+      "sha256": "0a0a7c1f1eafc81f4438aa9db713c3c86b013837cd226a59b83552cf7cc10a12"
+    },
+    "comparator": {
+      "sourceID": "comparator",
+      "sha256": "7cb0c6180c5d43fa14f5bf305eda948ed315d3752b4fffa3521cdbc6ba27fce0"
+    },
+    "fd-comparator": {
+      "sourceID": "comparator-differential",
+      "sha256": "3da84b2a5f65e2e7897028fa650a7ee387ae90f921375a4df0a4b29bb17e5426"
+    },
+    "adc": {
+      "sourceID": "adc",
+      "sha256": "682ebb28a00314f9491d190339dee7d5f100bafbfef19bb0fec14e882312b8a0"
+    },
+    "dac": {
+      "sourceID": "dac",
+      "sha256": "8c5983b7ba11d398a143107732fae1ae9b6c229bd0b22d6b8de02dcc9984c836"
+    },
+    "inverter": {
+      "sourceID": "inverter",
+      "sha256": "3bddd2dc2ac8e9eb2a78318a38895a6ef29b33218b57bfd19c574d2285fb462b"
+    },
+    "buffer": {
+      "sourceID": "buffer",
+      "sha256": "ddb136dd551804632ea1058f029cd62bed0d6aae439c48bbe567367b985df3bb"
+    },
+    "and": {
+      "sourceID": "and-gate",
+      "sha256": "799b68b63b902f06590a81de8566ddc1f5d6efe034e7cf71a586077497a746ee"
+    },
+    "or": {
+      "sourceID": "or-gate",
+      "sha256": "981df3c8efeb9a815e351cf0ac2e12c95583d80814ccc9c82627498a323c09d9"
+    },
+    "nand": {
+      "sourceID": "nand-gate",
+      "sha256": "1a4520372455382f7a051ef1181ab2098c3561300dd08f8fe277840ddca5ba6c"
+    },
+    "nor": {
+      "sourceID": "nor-gate",
+      "sha256": "a1f32d3f6c2428584c0bdbc3c505297c432a5db9f06cb6dd38b1a60d322997cb"
+    },
+    "xor": {
+      "sourceID": "xor-gate",
+      "sha256": "4c473ed37cbef2cb835dd04c3e6665b3c5e047cf73b981a084d7b990839e4fc9"
+    },
+    "xnor": {
+      "sourceID": "xnor-gate",
+      "sha256": "10c2f681f18d34bc3db429ec64fa796e5eb34dc593a6cd1564397215b90d4109"
+    },
+    "dff": {
+      "sourceID": "d-flip-flop",
+      "sha256": "f2b207d76c3a1d5c9541ebc30ed696e1c962e16f621a5bb562dab30b14236256"
+    },
+    "dff-reset": {
+      "sourceID": "d-flip-flop-reset",
+      "sha256": "59ccc84539e3c7316496a7b4b45dce671681eb55768b3935a6da0e8c4f46071c"
+    },
+    "dff-q": {
+      "sourceID": "d-flip-flop-q",
+      "sha256": "f2abd72dede23b9254db6a953e801ccf8d59681b0e6eddaebd45f7af3f6bf079"
+    },
+    "delay": {
+      "sourceID": "delay-cell",
+      "sha256": "d2a7d1e30ee5cb453212f12ba08ff0252e5b7b62bf66ec0b5c2a4f783bdd1e21"
+    },
+    "adder": {
+      "sourceID": "adder",
+      "sha256": "48e5bcc1491263f900fa4e724ed56df79b6a00d07849075133041a43a24d3e61"
+    },
+    "multiplier": {
+      "sourceID": "multiplier",
+      "sha256": "d66998fb3cfb4827ea389c8fb000954ad997cb561a95a168e9f1b6cbce5e29e3"
+    },
+    "integrator": {
+      "sourceID": "integrator",
+      "sha256": "0d1de8a3c78a25190dd661419ed776841f123f236e1a2cf9fc3045db77b9cefc"
+    },
+    "unit-delay": {
+      "sourceID": "unit-delay",
+      "sha256": "e7315d99a176f3c747ef317f125f17fccd637c7b48c44a4cbb5ed1455b4ccd68"
+    },
+    "discrete-integrator": {
+      "sourceID": "discrete-time-integrator",
+      "sha256": "bb1c467863053349150caf26e484ede3296ea9c8cc3a5b9ce3ed8c5c943e4418"
+    },
+    "quantizer": {
+      "sourceID": "quantizer",
+      "sha256": "9afc7cb8c5bf7834aa8c7ee792f6b7c5b68ec41788518c1b56a8e63d7295c4d5"
+    },
+    "arrow": {
+      "sourceID": "annotation-arrow",
+      "sha256": "c62f25036d947c2edb19e3937734680987cf61f2e0b8b73115c8fab8dbe953e2"
+    },
+    "line": {
+      "sourceID": "annotation-line",
+      "sha256": "6ea210e188536e93aa60a0e7ae9a0f5d8d9fbcb2aea4c31765cb216a4c9f9a1f"
+    },
+    "polyline": {
+      "sourceID": "annotation-polyline",
+      "sha256": "400732f85334f966c8ace12bd62d0df00308c8578fbc68fe72a2c522eb6fe272"
+    },
+    "rectangle": {
+      "sourceID": "annotation-rectangle",
+      "sha256": "c9e30af614c4beef206e114786011f36e090c83d21f7fc0e3dac4a8574f772f0"
+    },
+    "ellipse": {
+      "sourceID": "annotation-circle",
+      "sha256": "4ddbb914f349afeb3b4cd4bd8d681f4d8b735bbf53a657b1433320e2d3143bc3"
+    },
+    "polarity": {
+      "sourceID": "annotation-polarity-both",
+      "sha256": "cfbc1f2fcb4654b6fe1fb66d7e56ea71c9e7b4a35b44cb733a91cf0c6dc6581a"
+    },
+    "plus": {
+      "sourceID": "annotation-text-plus",
+      "sha256": "701107034d99a89098fb4a054edc654bdda304c6f507a8aa4b6bf2fcea5e3c31"
+    },
+    "minus": {
+      "sourceID": "annotation-text-minus",
+      "sha256": "43f445f4370387edb5440d0fc1345eea8c54d087ca3e50c179e4c848b49e0ecb"
+    },
+    "dots": {
+      "sourceID": "annotation-ellipsis",
+      "sha256": "215fb37e1cea77ccf6c01c51d4b2b78dfc20865b48a6c3373c73edfe55d2d53b"
+    },
+    "variable-resistor": {
+      "sourceID": "variable-resistor",
+      "sha256": "e3173ac49ef2c6ecde41d8f44ed7e1fc130507c3d9e0989c2836666a0407f1ba"
+    },
+    "variable-capacitor": {
+      "sourceID": "variable-capacitor",
+      "sha256": "13f726f031a96c23e442b91dbf0a627af27b9154f942f6c84937877d62354de9"
+    },
+    "variable-inductor": {
+      "sourceID": "variable-inductor",
+      "sha256": "f909e78526a14905a60a833a35098d9e3d2aeb59bc3ca0b949e7dfc8573600b2"
+    },
+    "diode": {
+      "sourceID": "diode",
+      "sha256": "1aa22549b2ff680a633b2b4fb91bebdcfa472b60ef53a4fcba923033dc6b391f"
+    },
+    "zener": {
+      "sourceID": "zener-diode",
+      "sha256": "3127fc8dc6fac552df0277033658d973602b03d933d5d6c33141776e711f5d5c"
+    },
+    "t-coil": {
+      "sourceID": "tcoil",
+      "sha256": "d0f04b29b79a02e13b08260e064737dca2aebf8a10e92753cdec6c857d40aab3"
+    },
+    "center-tapped-coil": {
+      "sourceID": "center-tap-inductor",
+      "sha256": "ee8ff5c0c129b58931c5415de384771d07bc675feeaabf47031f4e4bf7e858fd"
+    },
+    "transformer": {
+      "sourceID": "xfmr",
+      "sha256": "b2c7b6e8205c935a8e0037c70c6474dc52226670d8e17eda2ea4ac8711e09183"
+    },
+    "depletion-nmos": {
+      "sourceID": "depletion-nmos",
+      "sha256": "4551cefdda942e953501132bd7c6b3d408ac915cf24096d8ab0c7e16de579673"
+    },
+    "depletion-pmos": {
+      "sourceID": "depletion-pmos",
+      "sha256": "2565e64a5561866db189f29aa96d668616b9a6a55885e6dcb94a0ae4a317db22"
+    },
+    "ndmos": {
+      "sourceID": "ndmos",
+      "sha256": "2eeb79436191ae898595da4476762f11addd0dc3d5e1a6f30ae7ab2cf29323a6"
+    },
+    "pdmos": {
+      "sourceID": "pdmos",
+      "sha256": "83a8877c39a0f5845480903aebacdb862fd35036b905a852baa17aa3a9d81124"
+    },
+    "and:3": {
+      "sourceID": "and-gate-3",
+      "sha256": "68c332f76f6b3281a45b4830b5324b03354cdb5359bb74f58628c91f7b1b8090"
+    },
+    "and:4": {
+      "sourceID": "and-gate-4",
+      "sha256": "5c5a38c30a6c198c2ed22bbe8264cd42274dec18e708d6e5c7122d961e1dfd77"
+    },
+    "or:3": {
+      "sourceID": "or-gate-3",
+      "sha256": "c4979849a11c8be4805f17204ccc2a05743a3964d5b5aeedc728e9c199903ab1"
+    },
+    "or:4": {
+      "sourceID": "or-gate-4",
+      "sha256": "44a2fde1682315b19ff764bae3fe771ac3c55913ef9ec384a986d612efa602f7"
+    },
+    "nand:3": {
+      "sourceID": "nand-gate-3",
+      "sha256": "8e3316b456632f1450216279d3fed18c8a439d0a6dfda0939c8d6f7e456b5bd5"
+    },
+    "nand:4": {
+      "sourceID": "nand-gate-4",
+      "sha256": "228b57e7992326a1035ca467ef80d6637f67362e5f839fd3ca649baf65cf6e6e"
+    },
+    "nor:3": {
+      "sourceID": "nor-gate-3",
+      "sha256": "98c149f4ee056c63708eac420a6ec43bac01ea82224c524ffd2323b06db7be34"
+    },
+    "nor:4": {
+      "sourceID": "nor-gate-4",
+      "sha256": "5c9bb3192fba7b116c79f5eb23d3abbfeb2ec31ff650ad61a14c610fa5c740aa"
+    },
+    "xor:3": {
+      "sourceID": "xor-gate-3",
+      "sha256": "de53b6c62164d749121a31f7155f6e7465eeaa18e0c1f8e075af4c69f5830c22"
+    },
+    "xor:4": {
+      "sourceID": "xor-gate-4",
+      "sha256": "96dff4aa120c55bafd447f9ab5ff1a23b63b990cfbb067d57791669e76af5e1b"
+    },
+    "xnor:3": {
+      "sourceID": "xnor-gate-3",
+      "sha256": "572254fd3323dfdf247476b9c39f1903025535628c2cfd64988328bb0398ed53"
+    },
+    "xnor:4": {
+      "sourceID": "xnor-gate-4",
+      "sha256": "6ab4804778d4d82e3b79f3a19a15471ab55da1c01536499ea70bf145e368bd67"
+    }
+  },
+  "distribution": "Local preview; App Store redistribution terms remain unverified."
+}

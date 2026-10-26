@@ -9,7 +9,7 @@ import WebKit
         try FileManager.default.createDirectory(at:output,withIntermediateDirectories:true)
         let workspace=EngineeringWorkspace();workspace.start()
         for _ in 0..<100 {if workspace.url != nil {break};try await Task.sleep(for:.milliseconds(100))}
-        guard let url=workspace.url else{throw CircuitError.message("Asset server unavailable")}
+        guard let url=workspace.url else{throw CircuitError.message("Asset server unavailable: "+(workspace.error ?? "timeout"))}
         let host=EngineeringBrowser(workspace:workspace,url:url),coordinator=host.makeCoordinator()
         let config=WKWebViewConfiguration()
         config.websiteDataStore = .nonPersistent()
@@ -24,6 +24,9 @@ import WebKit
         var checks:[String]=[]
         func check(_ name:String,_ condition:Bool)throws{guard condition else{throw CircuitError.message("Failed: "+name)};checks.append(name);print("PASS "+name);fflush(nil)}
         guard (try? await web.evaluateJavaScript("typeof circuitStudioAgent")) as? String=="function" else{throw CircuitError.message("Independent editor failed to load ES modules")}
+        let secondWorkspace=EngineeringWorkspace();secondWorkspace.start()
+        for _ in 0..<100 {if secondWorkspace.url != nil || secondWorkspace.error != nil {break};try await Task.sleep(for:.milliseconds(100))}
+        try check("A second workspace recovers an occupied loopback port",secondWorkspace.url != nil && secondWorkspace.url?.port != workspace.url?.port)
         _=try await js("return await circuitStudioLoadCourseCase('A2-18-rc-01',0)")
         let layout=try await js("""
           const {controller:c}=await import('./editor.mjs');

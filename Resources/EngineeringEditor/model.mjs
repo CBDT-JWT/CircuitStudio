@@ -6,23 +6,29 @@ export const pointKey=p=>`${Math.round(p.x*1e5)},${Math.round(p.y*1e5)}`;
 export const samePoint=(a,b)=>Math.abs(a.x-b.x)<1e-5&&Math.abs(a.y-b.y)<1e-5;
 const key=(id,pin)=>`${id}:${pin}`;
 export function emptyCell(name='主电路'){return {id:uid(),name,revision:0,ports:[],components:[],wires:[],notes:[],junctions:[]};}
-export function newProject(name='新建电路'){const cell=emptyCell();return {schema:'circuitstudio-project-v1',version:1,id:uid(),name,revision:0,structureRevision:0,topCellId:cell.id,activeCellId:cell.id,cells:[cell],models:'',subcircuits:'',pdkBindings:[]};}
-export function makeComponent(type,x,y,reference='',parameters={}){const definition=symbol(type,parameters);return {id:uid(),type:definition.id,x:snap(x),y:snap(y),rotation:0,flipX:false,flipY:false,reference,parameters:{...definition.defaults,...parameters},netHints:{},showReference:!!definition.prefix,showValue:!!definition.defaults.value,referenceOffset:{x:16,y:-8},valueOffset:{x:16,y:8},color:null};}
+export function newProject(name='新建电路'){const cell=emptyCell();return {schema:'circuitstudio-project-v1',version:1,symbolGeometryVersion:2,id:uid(),name,revision:0,structureRevision:0,topCellId:cell.id,activeCellId:cell.id,cells:[cell],models:'',subcircuits:'',pdkBindings:[]};}
+export function makeComponent(type,x,y,reference='',parameters={}){const definition=symbol(type,parameters);return {id:uid(),type:definition.id,x:snap(x),y:snap(y),rotation:0,flipX:false,flipY:false,reference,parameters:{...definition.defaults,...parameters},netHints:{},showReference:!!definition.prefix&&!definition.hideReference,showValue:!!definition.defaults.value,referenceOffset:{x:16,y:-8},valueOffset:{x:16,y:8},color:null};}
 function onSegment(p,a,b){return Math.abs((p.x-a.x)*(b.y-a.y)-(p.y-a.y)*(b.x-a.x))<1e-5&&p.x>=Math.min(a.x,b.x)-1e-5&&p.x<=Math.max(a.x,b.x)+1e-5&&p.y>=Math.min(a.y,b.y)-1e-5&&p.y<=Math.max(a.y,b.y)+1e-5;}
 class Sets{constructor(){this.parent=new Map();}find(x){if(!this.parent.has(x))this.parent.set(x,x);if(this.parent.get(x)!==x)this.parent.set(x,this.find(this.parent.get(x)));return this.parent.get(x);}join(a,b){a=this.find(a);b=this.find(b);if(a!==b)this.parent.set(b,a);}}
-export function resolveNets(cell){
+export function resolveNets(cell,pinLookup=pinsFor){
  const sets=new Sets(),locations=[],hints=new Map(),named=new Map(),visible=[];
  const claim=(name,k)=>{if(!name)return;hints.set(k,name);};
- for(const component of cell.components){for(const p of pinsFor(component)){const k=key(component.id,p.name);sets.find(k);locations.push({...p,key:k});if(!p.hidden)visible.push({...p,key:k,component});claim(component.netHints?.[p.name],k);if(p.hidden&&component.netHints?.[p.name]==='0'){const ground=named.get('0')??'global:0';named.set('0',ground);sets.join(k,ground);}}
-  const pins=pinsFor(component);if(!pins.length)continue;
+ for(const component of cell.components){for(const p of pinLookup(component)){const k=key(component.id,p.name);sets.find(k);locations.push({...p,key:k});if(!p.hidden)visible.push({...p,key:k,component});claim(component.netHints?.[p.name]??(p.virtual&&!component.pinBindings?.[p.name]?p.defaultNet:undefined),k);if(p.hidden&&(component.netHints?.[p.name]==='0'||(p.virtual&&p.defaultNet==='0'&&!component.pinBindings?.[p.name]&&!component.netHints?.[p.name]))){const ground=named.get('0')??'global:0';named.set('0',ground);sets.join(k,ground);}}
+  const pins=pinLookup(component);if(!pins.length)continue;
   if(component.type==='ground'||['vdd-port','power-rail','bias-port','cell-pin'].includes(component.type)){
    const name=component.type==='ground'?'0':component.parameters.name;const k=key(component.id,pins[0].name);claim(name,k);if(name){if(named.has(name))sets.join(k,named.get(name));else named.set(name,k);}}
   if(component.parameters.bulk!=='external'&&component.parameters.bulk!=='global'&&component.nets?.B&&component.nets?.S)sets.join(key(component.id,'B'),key(component.id,'S'));
  }
+ for(const component of cell.components)for(const [name,binding] of Object.entries(component.pinBindings??{})){
+  const target=cell.components.find(p=>p.id===binding?.instanceId);
+  if(target&&pinLookup(target).some(p=>p.name===binding.pinName))sets.join(key(component.id,name),key(binding.instanceId,binding.pinName));
+  else if(binding?.wireId&&cell.wires.some(w=>w.id===binding.wireId))sets.join(key(component.id,name),'wire:'+binding.wireId);
+  else if(binding?.netName==='0'){const ground=named.get('0')??'global:0';named.set('0',ground);sets.join(key(component.id,name),ground);claim('0',key(component.id,name));}
+ }
  const segments=[];
  for(const w of cell.wires){const wk='wire:'+w.id;sets.find(wk);claim(w.netName,wk);for(let i=1;i<w.points.length;i++)segments.push({a:w.points[i-1],b:w.points[i],key:wk});if(w.start)sets.join(wk,key(w.start.instanceId,w.start.pinName));if(w.end)sets.join(wk,key(w.end.instanceId,w.end.pinName));
   if(w.rail&&w.netName){if(named.has(w.netName))sets.join(wk,named.get(w.netName));else named.set(w.netName,wk);}}
- for(const p of locations)for(const s of segments)if(onSegment(p,s.a,s.b))sets.join(p.key,s.key);
+ for(const p of locations.filter(p=>!p.virtual))for(const s of segments)if(onSegment(p,s.a,s.b))sets.join(p.key,s.key);
  // T joints and explicit vertices connect. A simple crossing has no junction.
  for(const w of cell.wires)for(const p of w.points)for(const s of segments)if(onSegment(p,s.a,s.b))sets.join('wire:'+w.id,s.key);
  for(const p of cell.junctions??[]) {const hits=segments.filter(s=>onSegment(p,s.a,s.b));for(const s of hits.slice(1))sets.join(hits[0].key,s.key);}
@@ -31,6 +37,29 @@ export function resolveNets(cell){
  for(const [root,keys] of groups){const candidates=keys.map(k=>hints.get(k)).filter(Boolean);let name=candidates.includes('0')?'0':candidates.find(n=>/^(?:VDD|VSS|VCC|VEE|IN|OUT|VF)/i.test(n))??candidates[0];if(!name||used.has(name)){do{name='N'+count++;}while(used.has(name));}used.add(name);names.set(root,name);}
  const pinNets={};for(const p of locations)pinNets[p.key]=names.get(sets.find(p.key));const wireNets={};for(const w of cell.wires)wireNets[w.id]=names.get(sets.find('wire:'+w.id));
  return {pinNets,wireNets,nets:[...groups].map(([root,keys])=>({name:names.get(root),pins:locations.filter(p=>keys.includes(p.key)).map(p=>({instanceId:p.key.slice(0,p.key.lastIndexOf(':')),pinName:p.name})),wires:cell.wires.filter(w=>keys.includes('wire:'+w.id)).map(w=>w.id)})),visiblePins:visible};
+}
+export function bindNetByName(cell,component,pinName,netName){
+ const name=String(netName).trim();component.pinBindings??={};
+ if(!name){delete component.pinBindings[pinName];delete component.netHints[pinName];return;}
+ const nets=resolveNets(cell);let binding;
+ for(const part of cell.components)for(const pin of pinsFor(part))if(!pin.virtual&&!pin.hidden&&nets.pinNets[key(part.id,pin.name)]?.toLowerCase()===name.toLowerCase())binding??={instanceId:part.id,pinName:pin.name};
+ if(!binding){const wire=cell.wires.find(w=>nets.wireNets[w.id]?.toLowerCase()===name.toLowerCase());if(wire)binding={wireId:wire.id};}
+ if(!binding&&name==='0')binding={netName:'0'};
+ if(!binding)throw Error('找不到实际电路网络：'+name);
+ component.pinBindings[pinName]=binding;component.netHints[pinName]=name;
+}
+function repairPinBindings(project,previous){
+ for(const cell of project.cells){
+  const old=previous.cells.find(c=>c.id===cell.id);if(!old||!cell.components.some(c=>Object.keys(c.pinBindings??{}).length))continue;
+  const before=resolveNets(old);
+  for(const part of cell.components)for(const [name,binding] of Object.entries(part.pinBindings??{})){
+   if(binding.netName==='0'||binding.wireId&&cell.wires.some(w=>w.id===binding.wireId)||binding.instanceId&&cell.components.some(c=>c.id===binding.instanceId&&pinsFor(c).some(p=>p.name===binding.pinName)))continue;
+   const net=binding.wireId?before.wireNets[binding.wireId]:before.pinNets[key(binding.instanceId,binding.pinName)];let replacement;
+   for(const c of cell.components)for(const p of pinsFor(c))if(!p.virtual&&!p.hidden&&before.pinNets[key(c.id,p.name)]===net&&net)replacement??={instanceId:c.id,pinName:p.name};
+   if(!replacement){const wire=cell.wires.find(w=>before.wireNets[w.id]===net&&net);if(wire)replacement={wireId:wire.id};}
+   if(replacement)part.pinBindings[name]=replacement;else{delete part.pinBindings[name];delete part.netHints[name];}
+  }
+ }
 }
 function clearPath(a,b,obstacles){if(a.x!==b.x&&a.y!==b.y)return false;return !obstacles.some(o=>a.x===b.x?a.x>o.x&&a.x<o.x+o.width&&Math.max(a.y,b.y)>o.y&&Math.min(a.y,b.y)<o.y+o.height:a.y>o.y&&a.y<o.y+o.height&&Math.max(a.x,b.x)>o.x&&Math.min(a.x,b.x)<o.x+o.width);}
 export function simplify(points){const out=[];for(const p of points){if(out.length&&samePoint(out.at(-1),p))continue;while(out.length>1){const a=out.at(-2),b=out.at(-1);if((a.x===b.x&&b.x===p.x)||(a.y===b.y&&b.y===p.y))out.pop();else break;}out.push({x:p.x,y:p.y});}return out;}
@@ -52,7 +81,14 @@ export function routeOrthogonal(a,b,obstacles=[],preferred,constraints={}){
  throw Error('找不到不穿过元件的连线路径。请拉开元件间距。');
 }
 export function connectPins(cell,references,{trunk,netName}={}){
- if(references.length<2)throw Error('请选择至少两个引脚。');const targets=references.map(r=>{const c=cell.components.find(c=>c.id===r.instanceId),p=c&&pinsFor(c).find(p=>p.name===r.pinName);if(!c||!p)throw Error('引脚不存在：'+r.pinName);return {component:c,p,reference:r};});
+ if(references.length<2)throw Error('请选择至少两个引脚。');let targets=references.map(r=>{const c=cell.components.find(c=>c.id===r.instanceId),p=c&&pinsFor(c).find(p=>p.name===r.pinName);if(!c||!p)throw Error('引脚不存在：'+r.pinName);return {component:c,p,reference:r};});
+ const virtual=targets.filter(t=>t.p.virtual),physical=targets.filter(t=>!t.p.virtual);
+ if(virtual.length){
+  if(!physical.length)throw Error('请选择一个实际电路网络作为控制节点。');
+  for(const t of virtual){t.component.pinBindings??={};t.component.pinBindings[t.p.name]={...physical[0].reference};}
+  if(physical.length<2)return [];
+  targets=physical;
+ }
  const boxes=cell.components.filter(c=>!['ground','vdd-port','bias-port','cell-pin','power-rail'].includes(c.type)).map(c=>({id:c.id,x:c.x-13,y:c.y-14,width:26,height:28}));
  const depart=t=>{const origin=transformPoint(t.component,{x:0,y:0});let dx=t.p.x-origin.x,dy=t.p.y-origin.y;if(Math.abs(dx)>Math.abs(dy)){dx=Math.sign(dx)||1;dy=0;}else{dy=Math.sign(dy)||1;dx=0;}return {x:t.p.x+dx*10,y:t.p.y+dy*10};};
  const resolved=resolveNets(cell),joining=new Set(targets.flatMap(t=>[resolved.pinNets[t.component.id+':'+t.p.name],t.component.netHints?.[t.p.name]]).filter(Boolean));if(netName)joining.add(netName);
@@ -85,7 +121,7 @@ export function synchronizeHierarchy(project,previous){
 export class ProjectStore {
  constructor(project=newProject()){this.project=validateProject(clone(project));this.undoStack=[];this.redoStack=[];this.aiRevision=null;}
  get cell(){return this.project.cells.find(c=>c.id===this.project.activeCellId)??this.project.cells[0];}
- transact(label,operation,{ai=false,structure=false}={}){const before=clone(this.project),draft=clone(this.project);operation(draft,draft.cells.find(c=>c.id===draft.activeCellId));synchronizeHierarchy(draft,before);validateProject(draft);draft.revision=before.revision+1;const cell=draft.cells.find(c=>c.id===draft.activeCellId);cell.revision=(before.cells.find(c=>c.id===cell.id)?.revision??0)+1;if(structure||JSON.stringify(draft.cells.map(c=>[c.id,c.ports]))!==JSON.stringify(before.cells.map(c=>[c.id,c.ports])))draft.structureRevision++;this.undoStack.push({project:before,label,ai});this.undoStack=this.undoStack.slice(-100);this.redoStack=[];this.project=draft;this.aiRevision=ai?draft.revision:null;return this.project;}
+ transact(label,operation,{ai=false,structure=false}={}){const before=clone(this.project),draft=clone(this.project);operation(draft,draft.cells.find(c=>c.id===draft.activeCellId));synchronizeHierarchy(draft,before);repairPinBindings(draft,before);validateProject(draft);draft.revision=before.revision+1;const cell=draft.cells.find(c=>c.id===draft.activeCellId);cell.revision=(before.cells.find(c=>c.id===cell.id)?.revision??0)+1;if(structure||JSON.stringify(draft.cells.map(c=>[c.id,c.ports]))!==JSON.stringify(before.cells.map(c=>[c.id,c.ports])))draft.structureRevision++;this.undoStack.push({project:before,label,ai});this.undoStack=this.undoStack.slice(-100);this.redoStack=[];this.project=draft;this.aiRevision=ai?draft.revision:null;return this.project;}
  undo(aiOnly=false){const entry=this.undoStack.at(-1);if(!entry)throw Error('没有可撤销的操作。');if(aiOnly&&(!entry.ai||this.aiRevision!==this.project.revision))throw Error('用户已编辑电路，不能撤销先前的 AI 操作。');this.undoStack.pop();this.redoStack.push({project:clone(this.project),label:entry.label,ai:entry.ai});const nextRevision=this.project.revision+1;this.project=clone(entry.project);this.project.revision=nextRevision;this.cell.revision=nextRevision;this.aiRevision=null;return this.project;}
  redo(){const e=this.redoStack.pop();if(!e)return;this.undoStack.push({project:clone(this.project),label:e.label,ai:false});const revision=this.project.revision+1;this.project=clone(e.project);this.project.revision=revision;this.cell.revision=revision;this.aiRevision=null;}
 }

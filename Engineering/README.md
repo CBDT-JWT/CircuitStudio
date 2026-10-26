@@ -1,6 +1,6 @@
 # Circuit Studio engineering editor
 
-The offline editor is independently implemented in `Independent/`: its own project model, SVG geometry, connectivity, orthogonal router, transactional history and SPICE importer/exporter. No Analog Canvas source, symbol assets or compiled packages are bundled.
+The offline editor is independently implemented in `Independent/`: its own project model, SVG renderer, connectivity, orthogonal router, transactional history and SPICE importer/exporter. Build33 uses the requested matching vector artwork under its separate bundled license; see `Independent/graphics/`. No upstream editor executable code or compiled editor packages are bundled.
 
 Build with `python3 Engineering/build.py`; this deterministically packages the original modules, public PDK packets, course examples, separately licensed fonts and Markdown renderer. No package install is needed. The native app serves these files over a loopback-only listener; file and clipboard access use the main-frame WKWebView bridge. Projects use `circuitstudio-project-v1`, with an adapter for existing user project data that ignores embedded artwork. Simulation settings are saved with the project.
 

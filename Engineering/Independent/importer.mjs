@@ -1,5 +1,5 @@
 import {newProject,emptyCell,makeComponent,uid,connectPins,routeOrthogonal,simplify,snap,clone,validateProject,resolveNets,samePoint} from './model.mjs';
-import {symbol,canonical,pinsFor,transformPoint} from './symbols.mjs';
+import {symbol,canonical,pinsFor,legacyPinsFor,transformPoint} from './symbols.mjs';
 const length=(value)=>{const m=String(value).match(/^([\d.eE+-]+)(meg|[fpnumkgt])?/i);if(!m)return NaN;return Number(m[1])*({f:1e-15,p:1e-12,n:1e-9,u:1e-6,m:1e-3,k:1e3,meg:1e6,g:1e9,t:1e12}[m[2]?.toLowerCase()]??1);};
 function sourceParameters(tail){const p={dc:'0',waveform:'dc',acMagnitude:'',acPhase:'0'};const dc=tail.match(/(?:^|\s)DC\s+([^\s]+)/i);if(dc)p.dc=dc[1];else if(tail.trim()&&!/^(SIN|PULSE|PWL|AC)\b/i.test(tail))p.dc=tail.trim().split(/\s/)[0];const ac=tail.match(/\bAC\s+(\S+)(?:\s+([^\s()]+))?/i);if(ac){p.acMagnitude=ac[1];p.acPhase=ac[2]&&/^[+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)(?:[eE][+-]?[0-9]+)?$/.test(ac[2])?ac[2]:'0';}const waveform=tail.match(/\b(SIN|PULSE|PWL)\s*\(([^)]+)\)/i);if(waveform){p.waveform=waveform[1].toLowerCase();const values=waveform[2].trim().split(/[\s,]+/);if(p.waveform==='sin')for(const [i,k] of ['offset','amplitude','frequency','delay','damping','phase'].entries())p[k]=values[i]??'0';if(p.waveform==='pulse')for(const [i,k] of ['low','high','delay','rise','fall','width','period'].entries())p[k]=values[i]??'0';if(p.waveform==='pwl')p.pwlPoints=waveform[2];}return p;}
 function cardsFromSource(source){const result=[];for(const raw of source.replace(/\r/g,'').split('\n')){const l=raw.trim();if(!l||l.startsWith('*'))continue;if(l.startsWith('+')){if(!result.length)throw Error('SPICE 续行没有前一条指令。');result[result.length-1]+=' '+l.slice(1).trim();}else result.push(l);}return result;}
@@ -29,8 +29,13 @@ export function parseSpice(source,{name='导入的电路',positions={},definitio
  project.models=models.join('\n');project.subcircuits=subs.join('\n');return project;
 }
 export function routeImportedProject(project){
- for(const cell of project.cells){const original=cell.components.slice(),groups=new Map();cell.wires=[];cell.components=original.filter(c=>!c.generatedGround);
-  for(const c of original){if(c.generatedGround||c.hidden)continue;for(const p of pinsFor(c)){if(p.hidden)continue;const name=c.netHints[p.name];if(!name)continue;const list=groups.get(name)??[];list.push({component:c,p,reference:{instanceId:c.id,pinName:p.name}});groups.set(name,list);}}
+ for(const cell of project.cells){const original=cell.components.slice(),groups=new Map(),virtualTargets=[];cell.wires=[];cell.components=original.filter(c=>!c.generatedGround);
+  for(const c of original){if(c.generatedGround||c.hidden)continue;for(const p of pinsFor(c)){if(p.virtual){if(c.netHints[p.name])virtualTargets.push({component:c,p,name:c.netHints[p.name]});continue;}if(p.hidden)continue;const name=c.netHints[p.name];if(!name)continue;const list=groups.get(name)??[];list.push({component:c,p,reference:{instanceId:c.id,pinName:p.name}});groups.set(name,list);}}
+  for(const t of virtualTargets){
+   const target=groups.get(t.name)?.[0];
+   if(target){t.component.pinBindings??={};t.component.pinBindings[t.p.name]={...target.reference};}
+   else if(t.name!=='0')throw Error('控制节点 '+t.name+' 没有实际电路网络，原工程未改动。');
+  }
   // Ground glyphs are local attachments. They do not substitute for signal
   // routes; every non-ground signal group receives physical conductors below.
   for(const t of groups.get('0')??[]){if(['supply-stimulus','ground'].includes(t.component.type))continue;const center={x:t.component.x,y:t.component.y};let end={x:t.p.x,y:t.p.y+30};if(t.p.y<center.y)end={x:t.p.x+(t.p.x>=center.x?40:-40),y:center.y+40};else if(t.p.x!==center.x)end={x:t.p.x+(t.p.x>center.x?20:-20),y:t.p.y+30};let g=original.filter(c=>c.type==='ground'&&!c.generatedGround&&Math.abs(c.x-end.x)<15&&Math.abs(c.y-end.y)<80).sort((a,b)=>Math.hypot(a.x-end.x,a.y-end.y)-Math.hypot(b.x-end.x,b.y-end.y))[0];if(g){const pin=pinsFor(g)[0];end={x:pin.x,y:pin.y};}else{g=makeComponent('ground',end.x,end.y+10,'',{});g.generatedGround=true;g.netHints={'0':'0'};cell.components.push(g);}const points=t.p.y<center.y?[t.p,{x:t.p.x,y:t.p.y-10},{x:end.x,y:t.p.y-10},end]:[t.p,{x:end.x,y:t.p.y},end];cell.wires.push({id:uid(),points:simplify(points),start:t.reference,end:{instanceId:g.id,pinName:'0'},netName:'0'});}
@@ -40,12 +45,30 @@ export function routeImportedProject(project){
 }
 export function importedNetErrors(project){const issues=[];for(const cell of project.cells){const nets=resolveNets(cell);const actualByExpected=new Map(),expectedByActual=new Map();for(const c of cell.components){for(const p of pinsFor(c)){if(p.hidden||!c.netHints[p.name])continue;const wanted=c.netHints[p.name],actual=nets.pinNets[`${c.id}:${p.name}`];(actualByExpected.get(wanted)??actualByExpected.set(wanted,new Set()).get(wanted)).add(actual);(expectedByActual.get(actual)??expectedByActual.set(actual,new Set()).get(actual)).add(wanted);}}for(const [name,groups] of actualByExpected)if(groups.size!==1)issues.push('断开网络 '+name);for(const [name,groups] of expectedByActual)if(groups.size!==1)issues.push('误连网络 '+[...groups].join('/'));}return issues;}
 export function prepareCourse(example,layouts){let source=example.netlist+'\n'+example.models;const definitions={};for(const [name,definition] of Object.entries(example.externalModels)){const ports=Array.from({length:definition.count},(_,i)=>'P'+(i+1));definitions[name]={...definition,ports};source+=`\n.subckt ${name} ${ports.join(' ')}\n${definition.body.replace(/\{(\d+)\}/g,(_,i)=>ports[Number(i)])}\n.ends ${name}\n`;}
- const positions=clone(layouts[example.assignmentID]);if(!positions)throw Error('课程布局不存在：'+example.assignmentID);for(const [ref,place] of Object.entries(positions))if(/^XTR/.test(ref))place[2]=0;
+ const positions=clone(layouts[example.assignmentID]);if(!positions)throw Error('课程布局不存在：'+example.assignmentID);for(const [ref,place] of Object.entries(positions))if(/^XTR/.test(ref))place[2]=270;
+ if(/^A2-19-(?:1[3-8])$/.test(example.id))positions.MP[3]='y';
  if(example.id==='A2-18-dual-02')Object.assign(positions,{R1:[120,20,270],L1:[280,100]});
  if(example.id==='A2-20-06')Object.assign(positions,{C3:[140,160],C4:[390,160],C1:[270,260],C2:[520,260],RREF1:[880,200],RREF2:[1000,200]});
  const project=parseSpice(source,{name:example.title,positions,definitions});project.courseCaseId=example.id;project.modelPacket=example.modelPacket;routeImportedProject(project);return project;}
 export function importProject(text){
- const raw=JSON.parse(text);if(raw.schema==='circuitstudio-project-v1')return validateProject(raw);
+ const raw=JSON.parse(text);if(raw.schema==='circuitstudio-project-v1'){
+  validateProject(raw);
+  if(raw.symbolGeometryVersion!==2){
+   for(const c of raw.cells){
+    const previous=resolveNets(c,legacyPinsFor);
+    for(const part of c.components){
+     const next=new Set(pinsFor(part).map(p=>p.name));part.netHints??={};
+     for(const pin of legacyPinsFor(part)){
+      const name=previous.pinNets[part.id+':'+pin.name];
+      if(!next.has(pin.name)&&c.wires.some(w=>w.start?.instanceId===part.id&&w.start.pinName===pin.name||w.end?.instanceId===part.id&&w.end.pinName===pin.name))throw Error(part.reference+' 的端口定义发生变化，需重新指定端口；原工程未改动。');
+      if(next.has(pin.name)&&name)part.netHints[pin.name]=name;
+     }
+    }
+   }
+   routeImportedProject(raw);raw.symbolGeometryVersion=2;raw.importedFrom='symbol-geometry-v1';
+  }
+  return validateProject(raw);
+ }
  if(!Array.isArray(raw.documents)||!raw.documents.length)throw Error('不支持此工程格式。');
  // This adapter reads the user's current instances and connection graph. It
  // deliberately ignores embedded symbol assets and never executes source code.
@@ -76,7 +99,7 @@ export function importProject(text){
    const coordinate=original.coordinate??[original.placement?.position?.x??0,original.placement?.position?.y??0];const part=makeComponent(type,coordinate[0],coordinate[1],original.name??'',parameters);
    if(prototype){part.card=prototype.card;part.cardPins=prototype.cardPins;part.cardParameters=prototype.cardParameters;part.cardParameterPrefixes=prototype.cardParameterPrefixes;}
    part.rotation=original.rotation??original.placement?.rotation??0;
-   if(type==='transformer'&&external)part.rotation=0;
+   if(type==='transformer'&&external)part.rotation=270;
    const mirror=original.mirror??original.placement?.mirror;part.flipX=['horizontal','both'].includes(mirror);part.flipY=['vertical','both'].includes(mirror);
    const mapping=original.importProvenance?.terminalMapping??[];
    for(const pin of geometry.pins){const oldName=mapping.find(t=>t.pinName===pin.name)?.pinName??pin.name;part.netHints[pin.name]=type==='ground'?'0':nameFor('t:'+original.id+':'+oldName);}

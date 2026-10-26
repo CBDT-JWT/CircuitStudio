@@ -15,10 +15,11 @@ temporary = tempfile.TemporaryDirectory(prefix='editor-', dir=cache)
 staging = Path(temporary.name)
 runtime = ['index.html', 'studio.css', 'agent.mjs', 'editor.mjs', 'icons.mjs',
            'importer.mjs', 'interaction.mjs', 'model.mjs', 'renderer.mjs',
-           'symbols.mjs', 'course-layouts.json']
+           'symbols.mjs', 'symbol-artwork.mjs', 'symbol-artwork-data.mjs', 'course-layouts.json']
 for name in runtime:
     shutil.copy2(source / name, staging / name)
 for origin, destination in [
+    ('Engineering/Independent/graphics', 'graphics'),
     ('Engineering/PDK', 'pdk'),
     ('Engineering/CourseCAD', 'course-cad'),
     ('Engineering/Markdown', 'markdown'),
@@ -28,11 +29,12 @@ for origin, destination in [
         raise SystemExit('Resolve duplicate source resources before packaging: ' + origin)
     shutil.copytree(ROOT / origin, staging / destination)
 manifest = {
-    'implementation': 'Circuit Studio independent editor v1',
-    'license': 'MIT',
+    'implementation': 'Circuit Studio independent editor with separately licensed vector graphics',
+    'license': 'MIT editor code; graphic data has its separate bundled license',
+    'referenceGraphicsBundled': True,
     'files': {str(p.relative_to(staging)):hashlib.sha256(p.read_bytes()).hexdigest()
               for p in sorted(staging.rglob('*')) if p.is_file()},
-    'thirdParty': ['Metropolis (Unlicense)', 'markdown-it (MIT)', 'KaTeX (MIT)',
+    'thirdParty': ['Reference vector graphics (AGPL-3.0)', 'Metropolis (Unlicense)', 'markdown-it (MIT)', 'KaTeX (MIT)',
                    'GF180MCU and SKY130 public models (Apache-2.0)'],
 }
 (staging / 'SOURCE.json').write_text(json.dumps(manifest, indent=2) + '\n')

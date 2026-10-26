@@ -1,0 +1,130 @@
+{
+  "version": "1.3.0",
+  "build": 33,
+  "implementation": "Circuit Studio editor with separately licensed reference vector artwork",
+  "upstreamEditorExecutableCodeBundled": false,
+  "referenceVectorArtworkBundled": true,
+  "drawingAuthorWatermark": false,
+  "readyForLocalPreview": true,
+  "readyForStoreSubmission": false,
+  "validated": {
+    "exactPaletteSVGs": 78,
+    "exactDefaultCanvasGlyphsIncludingFormulaAndDFFPinText": 67,
+    "mathematicalBodyTransformComparisons": 1072,
+    "bodyTransformComparisonsAreIndependentUIRotations": false,
+    "modelTests": 22,
+    "courseRoutingCases": 155,
+    "courseRoutingFailures": 0,
+    "courseDecksUnchangedFromBuild32": 155,
+    "nativeWebBridgeChecks": 12,
+    "nativeMultiwindowLoopbackRecovery": true,
+    "iPadFinalSimulator": {
+      "engine": "ngspice 47 · on-device",
+      "layouts": [
+        {
+          "actualOrientation": "landscape",
+          "bottomInset": 0,
+          "expectedBottom": 0,
+          "height": 980,
+          "inset": 444,
+          "requestedOrientation": "landscape",
+          "visible": true,
+          "width": 1376
+        },
+        {
+          "actualOrientation": "landscape",
+          "bottomInset": 0,
+          "expectedBottom": 0,
+          "height": 980,
+          "inset": 444,
+          "requestedOrientation": "portrait",
+          "visible": true,
+          "width": 1376
+        }
+      ],
+      "sampleCount": 5008,
+      "status": "passed"
+    },
+    "iPhoneFinalSimulator": {
+      "engine": "ngspice 47 · on-device",
+      "layouts": [
+        {
+          "actualOrientation": "landscape",
+          "bottomInset": 0,
+          "expectedBottom": 0,
+          "height": 420,
+          "inset": 372,
+          "requestedOrientation": "landscape",
+          "visible": true,
+          "width": 832
+        },
+        {
+          "actualOrientation": "portrait",
+          "bottomInset": 505,
+          "expectedBottom": 505.00000000000006,
+          "height": 860,
+          "inset": 0,
+          "requestedOrientation": "portrait",
+          "visible": true,
+          "width": 440
+        }
+      ],
+      "sampleCount": 5008,
+      "status": "passed"
+    },
+    "signedMacAndIOSArchives": true,
+    "finalResourceAudit": {
+      "macOS": {
+        "runtimeFiles": 105,
+        "unexpectedOrMissingFiles": 0,
+        "modifiedFiles": 0,
+        "privacyDataTypes": 5,
+        "graphicLicensePresent": true
+      },
+      "iOS": {
+        "runtimeFiles": 105,
+        "unexpectedOrMissingFiles": 0,
+        "modifiedFiles": 0,
+        "privacyDataTypes": 5,
+        "graphicLicensePresent": true
+      },
+      "preview": {
+        "runtimeFiles": 105,
+        "unexpectedOrMissingFiles": 0,
+        "modifiedFiles": 0,
+        "privacyDataTypes": 5,
+        "graphicLicensePresent": true
+      }
+    }
+  },
+  "notValidated": [
+    "Live CircuitAI provider conversation using the existing Keychain identity",
+    "Actual StoreKit purchase/restore",
+    "iPad portrait after the simulator remained landscape despite requesting portrait",
+    "All reference component rotation and annotation gesture behavior independently sampled in the reference UI",
+    "Full legacy hierarchy import beyond tested fixtures",
+    "Native macOS Open/Save dialogs end to end"
+  ],
+  "store": {
+    "build32UploadedBothPlatforms": true,
+    "build32Superseded": true,
+    "build33Uploaded": false,
+    "submitted": false,
+    "selectedBuild": null,
+    "reviewNotes": "Build33 saved on iOS and macOS",
+    "privacyDeclarations": "Five linked app-functionality categories published and verified on 2026-10-26; no tracking",
+    "blocker": "Mac locked; export/upload returned App Store Connect account access error. Updated Apple Developer Program License Agreement remains for user review and acceptance.",
+    "graphicsLicense": "AGPL-3.0 reference graphics notices preserved. Additional App Store redistribution permission not independently verified."
+  },
+  "evidenceDirectory": "/Users/weitaojiang/Library/Caches/CircuitStudioQA/Build33",
+  "archivesDirectory": "/Users/weitaojiang/Library/Caches/CircuitStudioDistribution-1.3.0-build33/Archives",
+  "editorResourceManifestSHA256": "373e3e197d2322ebadef50ffdf9c6cfb4849b7ebce4022b735f5c4c72da22d92",
+  "previewZipSHA256": "80e7ab36eb0789485f0e66233617a828ce34ab06f53abcb906272fcc37e2f84e",
+  "pendingStoreSteps": [
+    "Restore usable App Store Connect authentication and review updated Apple Developer agreement",
+    "Refresh screenshots and finish subscription review attachment",
+    "Resolve reference-artwork redistribution eligibility",
+    "Upload and select Build33 on both platforms",
+    "Submit versions for App Review"
+  ]
+}

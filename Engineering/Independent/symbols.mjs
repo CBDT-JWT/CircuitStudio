@@ -1,5 +1,6 @@
-// Original, parametric SVG symbols for Circuit Studio. Coordinates are authored
-// here from conventional electrical notation, not imported drawing assets.
+import {referenceGraphic,referenceLibrarySVG,referenceLibraryInk} from './symbol-artwork.mjs';
+// Independent electrical defaults and annotation editing. Library graphics use
+// the separately licensed vector data requested by the user; see graphics/.
 export const escapeXML = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const line=(x1,y1,x2,y2)=>`<path d="M${x1} ${y1}L${x2} ${y2}"/>`;
 const path=d=>`<path d="${d}"/>`;
@@ -24,7 +25,7 @@ const groups=[
 export const catalog=groups.flatMap(([category,categoryEN,items])=>items.map(([id,title,titleEN])=>({id,title,titleEN:titleEN??title,category,categoryEN})));
 export const aliases={'inductor-compact':'inductor','ideal-switch':'open-switch','externally-controlled-switch':'controlled-switch','voltage-controlled-switch':'voltage-switch','opamp-wide':'opamp','opamp-differential-wide-crossed':'fdamp','opamp-differential-crossed':'fdamp-small','opamp-differential':'fdamp','port':'cell-pin','port-filled':'bias-port','xfmr':'transformer','and-gate':'and','or-gate':'or','nand-gate':'nand','nor-gate':'nor','xor-gate':'xor','xnor-gate':'xnor','d-flip-flop':'dff','d-flip-flop-reset':'dff-reset','d-flip-flop-q':'dff-q','delay-cell':'delay','integrator-ct':'integrator','integrator-dt':'discrete-integrator','arrow-line':'arrow','circle':'ellipse','depletion-n-channel-mosfet':'depletion-nmos','depletion-p-channel-mosfet':'depletion-pmos'};
 export function canonical(id){return aliases[id]??id;}
-export function symbol(raw,parameters={}) {
+export function legacySymbol(raw,parameters={}) {
  const id=canonical(raw);let pins=pair(),ink='',prefix='X',defaults={},electrical=true;
  if(['resistor','variable-resistor'].includes(id)){prefix='R';defaults={value:'1k'};ink=path('M0 -20V-12L5 -9L-5 -3L5 3L-5 9L0 12V20');}
  else if(['capacitor','variable-capacitor'].includes(id)){prefix='C';defaults={value:'1p'};ink=path('M0 -20V-4M-10 -4H10M-10 4H10M0 4V20');}
@@ -56,5 +57,26 @@ export function symbol(raw,parameters={}) {
  if(id.startsWith('variable-'))ink+=path('M-15 12L15 -12M15 -12H8M15 -12V-5');
  let bounds={x:-30,y:-27,width:60,height:54};if(['rectangle','ellipse'].includes(id)){const w=Number(parameters.width)||40,h=Number(parameters.height)||24;bounds={x:-w/2,y:-h/2,width:w,height:h};}if(['line','arrow'].includes(id)){const w=Math.abs(Number(parameters.dx??40)),h=Math.abs(Number(parameters.dy??0));bounds={x:-w/2-6,y:-h/2-6,width:w+12,height:h+12};}if(id==='polyline'&&parameters.points?.length){const xs=parameters.points.map(p=>p.x),ys=parameters.points.map(p=>p.y);bounds={x:Math.min(...xs)-3,y:Math.min(...ys)-3,width:Math.max(...xs)-Math.min(...xs)+6,height:Math.max(...ys)-Math.min(...ys)+6};}return {id,pins,ink,prefix,defaults,electrical,bounds};
 }
+export function symbol(raw,parameters={}){
+ const original=legacySymbol(raw,parameters),graphic=referenceGraphic(original.id,parameters);
+ if(!graphic)return original;
+ let ink=graphic.ink;
+ const id=original.id;
+ if(['rectangle','ellipse'].includes(id)&&('width' in parameters||'height' in parameters)){
+  const w=Math.max(10,Math.min(2000,Number(parameters.width)||40)),h=Math.max(10,Math.min(2000,Number(parameters.height)||24));
+  ink=id==='rectangle'?`<polygon points="${-w/2},${-h/2} ${w/2},${-h/2} ${w/2},${h/2} ${-w/2},${h/2}" fill="none" stroke-width="1.6"/>`:`<ellipse cx="0" cy="0" rx="${w/2}" ry="${h/2}" fill="none" stroke-width="1.6"/>`;
+ }
+ if(['line','arrow'].includes(id)&&('dx' in parameters||'dy' in parameters)){
+  const dx=Number(parameters.dx??40),dy=Number(parameters.dy??0),length=Math.hypot(dx,dy)||1,ux=dx/length,uy=dy/length,head=Math.min(16.569767,length*.9),half=3.9534885;
+  const tip={x:dx/2,y:dy/2},base={x:tip.x-ux*head,y:tip.y-uy*head};
+  ink=`<path d="M${-dx/2} ${-dy/2}L${id==='arrow'?base.x:tip.x} ${id==='arrow'?base.y:tip.y}" fill="none" stroke-width="1.6"/>`;
+  if(id==='arrow')ink+=`<polygon points="${tip.x},${tip.y} ${base.x-uy*half},${base.y+ux*half} ${base.x+uy*half},${base.y-ux*half}" fill="currentColor" stroke="none"/>`;
+ }
+ if(id==='polyline'&&parameters.points)ink=original.ink;
+ return {...original,...graphic,ink,pins:graphic.pins,bounds:['rectangle','ellipse','line','arrow','polyline'].includes(id)?original.bounds:graphic.bounds};
+}
+export const librarySVG=raw=>referenceLibrarySVG(canonical(raw));
+export const libraryInk=raw=>referenceLibraryInk(canonical(raw));
+export function legacyPinsFor(component){return legacySymbol(component.type,component.parameters).pins.map(p=>({...p,...transformPoint(component,p)}));}
 export function transformPoint(component,p){const a=(component.rotation??0)*Math.PI/180;const x=p.x*(component.flipX?-1:1),y=p.y*(component.flipY?-1:1);return {x:component.x+Math.round((x*Math.cos(a)-y*Math.sin(a))*1e8)/1e8,y:component.y+Math.round((x*Math.sin(a)+y*Math.cos(a))*1e8)/1e8};}
 export function pinsFor(component){return symbol(component.type,component.parameters).pins.map(p=>({...p,...transformPoint(component,p)}));}

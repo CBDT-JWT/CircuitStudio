@@ -5,7 +5,7 @@ import {newProject,makeComponent,ProjectStore,connectPins,resolveNets,netlist,ro
 import {parseSpice,routeImportedProject,importedNetErrors} from './importer.mjs';
 import {displayValue,schematicMarkup} from './renderer.mjs';
 import {editorAgent,stampFor,defaultConfiguration} from './agent.mjs';
-test('all 78 independently authored library entries have drawable geometry and unique pins',()=>{assert.equal(catalog.length,78);for(const entry of catalog){const s=symbol(entry.id);assert(s.ink.length>0,entry.id);assert.equal(new Set(s.pins.map(p=>p.name)).size,s.pins.length,entry.id);}});
+test('all 78 library entries have drawable geometry and unique pins',()=>{assert.equal(catalog.length,78);for(const entry of catalog){const s=symbol(entry.id);assert(s.ink.length>0,entry.id);assert.equal(new Set(s.pins.map(p=>p.name)).size,s.pins.length,entry.id);}});
 test('real pin connections join the intended terminals only',()=>{const p=newProject(),c=p.cells[0];const a=makeComponent('resistor',0,0,'R1'),b=makeComponent('resistor',100,0,'R2');c.components.push(a,b);connectPins(c,[{instanceId:a.id,pinName:'1'},{instanceId:b.id,pinName:'1'}]);let n=resolveNets(c);assert.equal(n.pinNets[a.id+':1'],n.pinNets[b.id+':1']);assert.notEqual(n.pinNets[a.id+':1'],n.pinNets[a.id+':2']);});
 test('crossings are separate, T junctions and explicit dots bond',()=>{
  const c=newProject().cells[0],a={id:uid(),points:[{x:-50,y:0},{x:50,y:0}]},b={id:uid(),points:[{x:0,y:-50},{x:0,y:50}]};c.wires=[a,b];
@@ -42,3 +42,23 @@ test('parameterized subcircuit headers do not invent a PARAMS pin',()=>{const p=
 test('MOS instance geometry and finger parameters survive SPICE round trips',()=>{const p=parseSpice('M1 OUT IN 0 0 NMOS W=10u L=180n NF=4 AD=2p');assert.match(netlist(p),/NF=4 AD=2p/);});
 
 test('an explicitly selected model corner takes precedence over the project fallback packet',async()=>{const tab={store:new ProjectStore(),sessionID:uid(),configuration:defaultConfiguration()};tab.store.project.modelPacket='gf180-tt';tab.configuration.models='* CIRCUIT_STUDIO_GF180MCU_FF\n.model selected nmos level=54';const agent=editorAgent({tab:()=>tab,changed:()=>{},image:async()=>'',loadPacket:async()=>{throw Error('Must not overwrite an explicit model choice');}});const result=await agent('simulation_payload',{},stampFor(tab));assert.equal(result.configuration.models,tab.configuration.models);});
+
+test('control-node bindings never add a stem or short a wire crossing the source body',()=>{
+ const c=newProject().cells[0],v=makeComponent('voltage-source',0,100,'VIN'),e=makeComponent('vcvs',120,100,'E1');c.components.push(v,e);
+ connectPins(c,[{instanceId:e.id,pinName:'CP'},{instanceId:v.id,pinName:'+'}]);
+ assert.equal(c.wires.length,0);c.wires.push({id:'crossing',points:[{x:100,y:100},{x:140,y:100}],netName:'OTHER'});
+ const nets=resolveNets(c);assert.equal(nets.pinNets[e.id+':CP'],nets.pinNets[v.id+':+']);assert.notEqual(nets.pinNets[e.id+':CP'],nets.wireNets.crossing);
+ assert(symbol('vcvs').pins.find(p=>p.name==='CP').virtual);assert(symbol('vcvs').pins.find(p=>p.name==='CP').hidden);
+});
+test('deleting a control-node anchor retains the binding to surviving members of that actual net',()=>{
+ const p=newProject(),c=p.cells[0],v=makeComponent('voltage-source',0,100,'VIN'),r=makeComponent('resistor',100,0,'R1'),e=makeComponent('vcvs',250,100,'E1');c.components.push(v,r,e);
+ connectPins(c,[{instanceId:v.id,pinName:'+'},{instanceId:r.id,pinName:'1'}]);connectPins(c,[{instanceId:e.id,pinName:'CP'},{instanceId:v.id,pinName:'+'}]);
+ const store=new ProjectStore(p);store.transact('Delete voltage source',(_,cell)=>{cell.components=cell.components.filter(p=>p.id!==v.id);cell.wires=cell.wires.filter(w=>w.start?.instanceId!==v.id&&w.end?.instanceId!==v.id);});
+ assert.deepEqual(store.cell.components.find(p=>p.id===e.id).pinBindings.CP,{instanceId:r.id,pinName:'1'});store.undo();assert.equal(store.cell.components.find(p=>p.id===e.id).pinBindings.CP.instanceId,v.id);
+});
+test('Build32 saved circuits migrate source controls and reconnect physical terminals before reopening',async()=>{
+ const fs=await import('node:fs/promises'),{importProject,importedNetErrors}=await import('./importer.mjs');
+ const original=await fs.readFile(new URL('./fixtures/symbol-geometry-v1.json',import.meta.url),'utf8'),project=importProject(original);
+ assert.equal(project.symbolGeometryVersion,2);assert.deepEqual(importedNetErrors(project),[]);assert.match(netlist(project),/ER VR 0 IN OUT 1/);
+ assert.equal(project.simulationConfiguration.settings.analysis,'AC analysis');assert.equal(JSON.parse(original).symbolGeometryVersion,undefined);
+});

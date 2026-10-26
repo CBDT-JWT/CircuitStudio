@@ -75,12 +75,21 @@ final class EngineeringAssetServer: @unchecked Sendable {
     func start() {
         guard server == nil else { return }
         guard let root=Bundle.main.url(forResource:"EngineeringEditor",withExtension:nil) else { error="The offline engineering editor is missing. Build Engineering/build.py first.";return }
+        startAssetServer(root:root,port:UInt16(clamping:UserDefaults.standard.integer(forKey:"engineering-loopback-port")))
+    }
+    private func startAssetServer(root:URL,port:UInt16) {
         do {
-            let server=EngineeringAssetServer(root:root,port:UInt16(clamping:UserDefaults.standard.integer(forKey:"engineering-loopback-port")));self.server=server
+            let server=EngineeringAssetServer(root:root,port:port);self.server=server
             try server.start { [weak self] result in Task { @MainActor in
-                switch result { case .success(let url):UserDefaults.standard.set(url.port,forKey:"engineering-loopback-port");self?.url=url;case .failure(let error):self?.error=error.localizedDescription }
+                guard let self else{return}
+                switch result {
+                case .success(let url):UserDefaults.standard.set(url.port,forKey:"engineering-loopback-port");self.url=url
+                case .failure(let error):
+                    if port != 0,case NWError.posix(.EADDRINUSE)=error {self.startAssetServer(root:root,port:0)}
+                    else {self.error=error.localizedDescription}
+                }
             } }
-        } catch { self.error=(error as NSError).userInfo["WKJavaScriptExceptionMessage"] as? String ?? error.localizedDescription }
+        } catch { self.error=error.localizedDescription }
     }
     func fileCommand(_ command:String) {
         guard ["new","open","save","save-as"].contains(command) else{return}
@@ -112,8 +121,8 @@ final class EngineeringAssetServer: @unchecked Sendable {
             catch { self.error=(error as NSError).userInfo["WKJavaScriptExceptionMessage"] as? String ?? error.localizedDescription }
         }
     }
-    func updateDrawerInset(_ width:CGFloat) {
-        webView?.evaluateJavaScript("window.circuitStudioSetDrawerInset?.(\(Int(width)))",completionHandler:nil)
+    func updateDrawerInset(_ width:CGFloat,bottom:CGFloat=0) {
+        webView?.evaluateJavaScript("window.circuitStudioSetDrawerInset?.(\(Int(width)),\(Int(bottom)))",completionHandler:nil)
     }
     func simulate() {
         drawerTab = .simulation;showDrawer=true
@@ -160,7 +169,10 @@ struct EngineeringWorkspaceView:View {
         VStack(spacing:0) {
             if let url=workspace.url {
                 GeometryReader { geometry in
-                 ZStack(alignment:.trailing) {
+                 let compact=geometry.size.width<600
+                 let drawerWidth=compact ? max(0,geometry.size.width-24):min(420,max(340,geometry.size.width*0.30))
+                 let drawerHeight=compact ? min(500,max(300,geometry.size.height*0.55)):max(300,geometry.size.height-48)
+                 ZStack(alignment:compact ? .bottom:.trailing) {
                   ZStack(alignment:.bottomTrailing) {
                     EngineeringBrowser(workspace:workspace,url:url)
                     if !workspace.showDrawer { HStack(spacing:6) {
@@ -196,11 +208,11 @@ struct EngineeringWorkspaceView:View {
                             if workspace.drawerTab == .assistant {
                                 EngineeringChatDrawer(chat:workspace.chat,close:{workspace.showDrawer=false},snapshot:{try await workspace.assistantSnapshot()},execute:{try await workspace.agentTool($0,arguments:$1,stamp:$2)},figureChanged:{workspace.updateFigure($0)},showsClose:false)
                             } else {EngineeringSimulationDrawer(workspace:workspace)}
-                        }.frame(width:min(420,max(340,geometry.size.width*0.30)),height:max(300,geometry.size.height-48)).background(.regularMaterial,in:RoundedRectangle(cornerRadius:20)).clipShape(RoundedRectangle(cornerRadius:20)).shadow(color:.black.opacity(0.10),radius:24,y:8).padding(.trailing,16).accessibilityIdentifier("engineering-tools-drawer")
-                            .transition(.move(edge:.trailing).combined(with:.opacity))
+                        }.frame(width:drawerWidth,height:drawerHeight).background(.regularMaterial,in:RoundedRectangle(cornerRadius:20)).clipShape(RoundedRectangle(cornerRadius:20)).shadow(color:.black.opacity(0.10),radius:24,y:8).padding(.trailing,compact ? 0:16).padding(.bottom,compact ? 16:0).accessibilityIdentifier("engineering-tools-drawer")
+                            .transition(.move(edge:compact ? .bottom:.trailing).combined(with:.opacity))
                     }
-                 }.onChange(of:workspace.showDrawer,initial:true) {_,open in workspace.updateDrawerInset(open ? min(420,max(340,geometry.size.width*0.30))+32:0)}
-                  .onChange(of:geometry.size.width){_,width in if workspace.showDrawer{workspace.updateDrawerInset(min(420,max(340,width*0.30))+32)}}
+                 }.onChange(of:workspace.showDrawer,initial:true) {_,open in workspace.updateDrawerInset(open && !compact ? drawerWidth+32:0,bottom:open && compact ? drawerHeight+32:0)}
+                  .onChange(of:geometry.size){_,_ in if workspace.showDrawer{workspace.updateDrawerInset(compact ? 0:drawerWidth+32,bottom:compact ? drawerHeight+32:0)}}
                 }
             }
             else if let error=workspace.error { ContentUnavailableView("Engineering workspace",systemImage:"exclamationmark.triangle",description:Text(error)) }

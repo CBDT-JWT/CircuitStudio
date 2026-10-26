@@ -17,6 +17,7 @@ enum AppPrivacy {
               let url = URL(string: text), url.scheme == "https", url.host != nil else { return nil }
         return url
     }
+    static var graphicLicense: String { guard let url = Bundle.main.resourceURL?.appendingPathComponent("EngineeringEditor/graphics/LICENSE-AGPL-3.0.txt") else { return "See the bundled vector artwork license." }; return (try? String(contentsOf: url, encoding: .utf8)) ?? "See the bundled vector artwork license." }
     static var sparkleLicense: String { Bundle.main.url(forResource: "Sparkle-LICENSE", withExtension: "txt").flatMap { try? String(contentsOf: $0, encoding: .utf8) } ?? "Sparkle is distributed under its bundled MIT license." }
     static var license: String {
         Bundle.main.url(forResource: "ngspice-COPYING", withExtension: "txt")
@@ -37,9 +38,9 @@ struct PrivacyView: View {
                     if let url = AppPrivacy.url(for: "CSPrivacyPolicyURL") { Link("Privacy policy on the web", destination: url) }
                     if let url = AppPrivacy.url(for: "CSSupportURL") { Link("Contact and support", destination: url) }
                     DisclosureGroup("Fonts, Markdown and public model notices") {
-                        Text("Metropolis fonts: Unlicense. Markdown-it and KaTeX: MIT. GF180MCU and SKY130 public model packets: Apache-2.0. Their license files and source notices are included with the app. The editor and schematic symbols are independently implemented for Circuit Studio.").font(.footnote).textSelection(.enabled)
+                        Text("Metropolis fonts: Unlicense. Markdown-it and KaTeX: MIT. GF180MCU and SKY130 public model packets: Apache-2.0. Their license files and source notices are included with the app. The editor is independently implemented for Circuit Studio. Vector artwork has a separate bundled license.").font(.footnote).textSelection(.enabled)
                     }
-                    DisclosureGroup("ngspice acknowledgements") { Text(AppPrivacy.license).font(.footnote).textSelection(.enabled) }; DisclosureGroup("Sparkle acknowledgements") { Text(AppPrivacy.sparkleLicense).font(.footnote).textSelection(.enabled) }
+                    DisclosureGroup("Vector artwork license") { Text(AppPrivacy.graphicLicense).font(.footnote).textSelection(.enabled) }; DisclosureGroup("ngspice acknowledgements") { Text(AppPrivacy.license).font(.footnote).textSelection(.enabled) }; DisclosureGroup("Sparkle acknowledgements") { Text(AppPrivacy.sparkleLicense).font(.footnote).textSelection(.enabled) }
                 }.frame(maxWidth: 640, alignment: .leading).padding(24)
             }.navigationTitle("Privacy policy")
                 .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }

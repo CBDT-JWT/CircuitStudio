@@ -1,20 +1,22 @@
-# Independent Circuit Studio editor
+# Circuit Studio editor
 
-This implementation is authored for Circuit Studio. It does not import Analog
-Canvas packages, source files, JSON symbol definitions, routing algorithms or
-compiled assets. The reference is a functional specification only.
+The document model, renderer, connectivity, router, history, native bridge and
+SPICE import/export are implemented for Circuit Studio. No upstream editor
+executable code is imported.
 
-The editor uses its own document model, SVG geometry, connectivity resolution,
-orthogonal router, transactional history and SPICE import/export. Native Swift
-continues to provide file access, clipboard, StoreKit, CircuitAI conversations,
-model storage and local ngspice execution. Existing user project data is imported
-through a format adapter; the adapter does not execute or render embedded artwork.
+At the user's request, Build33 uses the same vector symbol and palette artwork
+as the reference project. This is graphic data, not independently authored
+artwork. See `graphics/SOURCE.json` for the source revision and the separate
+bundled license. The editing canvas, library and exported images have no source
+branding or author watermark. Required notices remain in third-party licenses.
 
-Public process-model packets and the separately licensed schematic font remain
-independent dependencies with their notices. Course netlists and explicit layout
-coordinates authored for Circuit Studio are retained, while their rendering and
-routing are rebuilt here.
+The graphic changes include physical terminal geometry. Older saved Circuit
+Studio documents are migrated from their actual electrical graph before being
+shown. Unsupported port migrations fail without overwriting the original file.
 
-Run `node --test Engineering/Independent/*.test.mjs` for model and connectivity
-checks. Build with `python3 Engineering/build.py`. New artifacts use Build 32;
-Build 31 contains the retired reference implementation and must not be submitted.
+Build32 was uploaded for both platforms but was not selected or submitted.
+Build31 is retired. Build33 must not be represented as having cleared App Store
+redistribution checks merely because the reference data is publicly accessible.
+
+Run `node --test Engineering/Independent/*.test.mjs`,
+`python3 Engineering/build.py`, and the native bridge/course verification scripts.
