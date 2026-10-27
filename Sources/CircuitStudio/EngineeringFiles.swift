@@ -83,21 +83,20 @@ import UniformTypeIdentifiers
             let panel=NSSavePanel();panel.allowedContentTypes=[type];panel.nameFieldStringValue=name(payload["name"] as? String ?? "",fallback:"Circuit")
             guard panel.runModal() == .OK,let url=panel.url else { return ["status":"cancelled"] }
             let access=url.startAccessingSecurityScopedResource();defer { if access { url.stopAccessingSecurityScopedResource() } };try bytes.write(to:url,options:.atomic);return ["status":"saved"]
-        case "clipboard-read":return ["text":NSPasteboard.general.string(forType:.string) ?? ""]
+        case "clipboard-read":return ["text":NSPasteboard.general.string(forType:NSPasteboard.PasteboardType("com.circuitstudio.engineering-selection")) ?? NSPasteboard.general.string(forType:.string) ?? ""]
         case "clipboard-prepare":
-            let value=try text(payload,"text",limit:20_000_000)
-            NSPasteboard.general.clearContents();NSPasteboard.general.setString(value,forType:.string)
+            _ = try text(payload,"text",limit:20_000_000)
             return ["ticket":NSPasteboard.general.changeCount]
         case "clipboard":
             if let ticket=payload["ticket"] as? Int,ticket != NSPasteboard.general.changeCount { throw CircuitError.message("The clipboard changed. Copy your selection again.") }
             let item=NSPasteboardItem();var hasData=false
             if let value=payload["text"] as? String,value.utf8.count <= 20_000_000 {
-                item.setString(value,forType:.string);item.setString(value,forType:NSPasteboard.PasteboardType("com.circuitstudio.engineering-selection"));hasData=true
+                item.setString(value,forType:NSPasteboard.PasteboardType("com.circuitstudio.engineering-selection"));hasData=true
             }
             for (field,type) in [("png",NSPasteboard.PasteboardType.png),("svg",NSPasteboard.PasteboardType("public.svg-image"))] {
                 if let encoded=payload[field] as? String {
                     guard encoded.utf8.count <= 60_000_000,let bytes=Data(base64Encoded:encoded),field != "png" || NSImage(data:bytes) != nil else { throw CircuitError.message("Invalid clipboard image.") }
-                    item.setData(bytes,forType:type);hasData=true
+                    item.setData(bytes,forType:type);if field == "png",let tiff=NSImage(data:bytes)?.tiffRepresentation{item.setData(tiff,forType:.tiff)};hasData=true
                 }
             }
             guard hasData else { throw CircuitError.message("Nothing to copy.") }

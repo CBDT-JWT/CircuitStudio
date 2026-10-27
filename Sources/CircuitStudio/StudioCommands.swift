@@ -40,10 +40,10 @@ struct StudioCommands: Commands {
         }
         CommandGroup(after: .newItem) { Button("Engineering workspace…") { openWindow(id:"engineering") }.keyboardShortcut("n",modifiers:[.command,.option]) }
         #endif
-        CommandGroup(after: .newItem) { Button("Circuit templates…") { store?.showTemplates = true }; Button("Import CircuitikZ…") { store?.showImport = true } }
-        CommandGroup(replacing: .pasteboard) { Button("Cut") { if let store { StudioClipboard.cutSelection(store) } else { nativeClipboard("cut:") } }.keyboardShortcut("x").disabled(store?.selection.isEmpty ?? false); Button("Copy selection as PNG") { if let store { StudioClipboard.copyAs(.png,store:store) } else { nativeCopyPNG() } }.keyboardShortcut("c",modifiers:[.command,.shift]).disabled(store?.selection.isEmpty ?? false); Button("Copy") { if let store { StudioClipboard.copySelection(store) } else { nativeClipboard("copy:") } }.keyboardShortcut("c").disabled(store?.selection.isEmpty ?? false); Button("Paste") { if let store { StudioClipboard.pasteSelection(store) } else { nativeClipboard("paste:") } }.keyboardShortcut("v"); Button("Duplicate") { store?.duplicateSelection() }.keyboardShortcut("d").disabled(store?.selection.isEmpty ?? true); Button("Delete") { store?.deleteSelection() }.keyboardShortcut(.delete, modifiers: []).disabled(store?.selection.isEmpty ?? true); Divider(); Menu("Copy as") { ForEach(ExportFormat.allCases.filter { store?.supportsSimulation != false || $0 != .spice }) { format in Button(format.rawValue) { if let store { StudioClipboard.copyAs(format, store: store) } } } } }
-        CommandGroup(replacing: .help) { Button("Keyboard & canvas controls…") { store?.showShortcuts = true }.keyboardShortcut("/", modifiers:[.command]) }
-        CommandMenu("Circuit") { Button("Add component…") { store?.paletteQuery = ""; store?.showPalette = true }.keyboardShortcut("i", modifiers: []).disabled(store == nil); Button("Command palette…") { store?.paletteQuery = ""; store?.showPalette = true }.keyboardShortcut("p"); Divider(); Button("Rotate") { store?.transformSelection("Rotate") }.keyboardShortcut("r", modifiers: []).disabled(store == nil); Button("Flip horizontal") { store?.transformSelection("Flip horizontal") }.keyboardShortcut("r", modifiers: [.shift]).disabled(store == nil); Button("Flip vertical") { store?.transformSelection("Flip vertical") }.keyboardShortcut("r"); Divider(); Button("Global supplies…") { store?.selection.removeAll(); store?.revealInspector() }; Button("Clean up circuit") { store?.cleanUp() }; Button("Renumber circuit") { store?.renumber() }; Button("Select all") { if let store { store.selection = store.circuit.objectIDs } else { nativeClipboard("selectAll:") } }.keyboardShortcut("a") }
+        CommandGroup(after: .newItem) { Button("Circuit templates…") { if let store{store.showTemplates=true}else{showEngineeringExamples()} }; Button("Import CircuitikZ…") { store?.showImport = true }.disabled(store == nil) }
+        CommandGroup(replacing: .pasteboard) { Button("Cut") { if let store { StudioClipboard.cutSelection(store) } else { nativeClipboard("cut:") } }.keyboardShortcut("x").disabled(store?.selection.isEmpty ?? false); Button("Copy selection as PNG") { if let store { StudioClipboard.copyAs(.png,store:store) } else { nativeCopyPNG() } }.keyboardShortcut("c",modifiers:[.command,.shift]).disabled(store?.selection.isEmpty ?? false); Button("Copy") { if let store { StudioClipboard.copySelection(store) } else { nativeClipboard("copy:") } }.keyboardShortcut("c").disabled(store?.selection.isEmpty ?? false); Button("Paste") { if let store { StudioClipboard.pasteSelection(store) } else { nativeClipboard("paste:") } }.keyboardShortcut("v"); Button("Duplicate") { if let store{store.duplicateSelection()}else{editorCommand("duplicate")} }.keyboardShortcut("d").disabled(store?.selection.isEmpty ?? false); Button("Delete") { if let store{store.deleteSelection()}else{editorCommand("delete")} }.keyboardShortcut(.delete, modifiers: []).disabled(store?.selection.isEmpty ?? false); Divider(); Menu("Copy as") { ForEach(ExportFormat.allCases.filter { store?.supportsSimulation != false || $0 != .spice }) { format in Button(format.rawValue) { if let store { StudioClipboard.copyAs(format, store: store) } } } } }
+        CommandGroup(replacing: .help) { Button("Keyboard & canvas controls…") { if let store{store.showShortcuts=true}else{editorCommand("shortcuts")} }.keyboardShortcut("/", modifiers:[.command]) }
+        CommandMenu("Circuit") { Button("Add component…") { if let store{store.paletteQuery="";store.showPalette=true}else{editorCommand("show-library")} }.keyboardShortcut("i", modifiers: []); Button("Command palette…") { if let store{store.paletteQuery="";store.showPalette=true}else{editorCommand("show-library")} }.keyboardShortcut("p"); Divider(); Button("Rotate") { if let store{store.transformSelection("Rotate")}else{editorCommand("rotate")} }.keyboardShortcut("r", modifiers: []); Button("Flip horizontal") { if let store{store.transformSelection("Flip horizontal")}else{editorCommand("flip-x")} }.keyboardShortcut("x", modifiers: []); Button("Flip vertical") { if let store{store.transformSelection("Flip vertical")}else{editorCommand("flip-y")} }.keyboardShortcut("y",modifiers:[]); Divider(); Button("Global supplies…") { if let store{store.selection.removeAll();store.revealInspector()}else{configureSimulation()} }; Button("Clean up circuit") { store?.cleanUp() }.disabled(store == nil); Button("Renumber circuit") { if let store{store.renumber()}else{editorCommand("renumber")} }; Button("Select all") { if let store { store.selection = store.circuit.objectIDs } else { editorCommand("select-all") } }.keyboardShortcut("a") }
         CommandMenu("Paper figure") { ForEach(FigureKind.allCases) { kind in Button(kind.rawValue) { store?.insertFigure(kind) } }; Button("Draw arrow") { store?.cancel(); store?.tool = .connector }.keyboardShortcut("l", modifiers: [.shift]); Divider(); Button("Align horizontally") { store?.align("horizontal") }; Button("Align vertically") { store?.align("vertical") }; Button("Distribute horizontally") { store?.distribute("horizontal") }; Button("Distribute vertically") { store?.distribute("vertical") }; Divider(); ForEach(PaperExample.allCases) { example in Button(example.rawValue) { store?.insertPaperExample(example) } } }
         CommandMenu("Canvas mode") { ForEach(CanvasPurpose.allCases) { purpose in Button(purpose.rawValue) { store?.setPurpose(purpose) }.disabled(store == nil) } }
         CommandMenu("Simulation") {
@@ -53,7 +53,7 @@ struct StudioCommands: Commands {
             Button("Show waveforms") { store?.showWaveforms.toggle() }.disabled(store?.simulationResult == nil)
             Button("Annotate operating points") { store?.annotateOP.toggle() }.disabled(store?.simulationResult?.analysis != .op)
         }
-        CommandGroup(after: .toolbar) { Button("Toggle grid") { store?.showGrid.toggle() }; Button("Snap to grid") { store?.snapEnabled.toggle() }; Button("Fit circuit") { store?.fit() }.keyboardShortcut("0"); Button("Zoom in") { if let store { store.changeZoom(store.zoom * 1.2) } }.keyboardShortcut("+"); Button("Zoom out") { if let store { store.changeZoom(store.zoom / 1.2) } }.keyboardShortcut("-") }
+        CommandGroup(after: .toolbar) { Button("Toggle grid") { if let store{store.showGrid.toggle()}else{editorCommand("grid")} }; Button("Snap to grid") { if let store{store.snapEnabled.toggle()}else{editorCommand("snap")} }; Button("Fit circuit") { if let store{store.fit()}else{editorCommand("fit")} }.keyboardShortcut("0"); Button("Zoom in") { if let store { store.changeZoom(store.zoom * 1.2) }else{editorCommand("zoom-in")} }.keyboardShortcut("+"); Button("Zoom out") { if let store { store.changeZoom(store.zoom / 1.2) }else{editorCommand("zoom-out")} }.keyboardShortcut("-") }
         #if os(macOS)
         CommandMenu("电路图导出") {
             Menu("Virtuoso 风格") {
@@ -61,13 +61,27 @@ struct StudioCommands: Commands {
                 Button("导出 SVG…"){engineering?.exportImage("svg",style:"virtuoso")}.disabled(engineering == nil)
                 Button("复制为 PNG"){engineering?.exportImage("png",style:"virtuoso",copy:true)}.disabled(engineering == nil)
             }
+            Menu("选区导出") {
+                Button("导出选区 PNG…"){engineering?.exportImage("png",style:"current",selection:true)}.disabled(engineering == nil)
+                Button("导出选区 SVG…"){engineering?.exportImage("svg",style:"current",selection:true)}.disabled(engineering == nil)
+            }
             Menu("当前配色") {
                 Button("导出 PNG…"){engineering?.exportImage("png",style:"current")}.disabled(engineering == nil)
                 Button("导出 SVG…"){engineering?.exportImage("svg",style:"current")}.disabled(engineering == nil)
             }
         }
         #endif
-        CommandGroup(after: .importExport) { Button("Export circuit…") { store?.showExport = true }.keyboardShortcut("e", modifiers: [.command, .shift]) }
+        CommandGroup(after: .importExport) { Button("Export circuit…") { if let store{store.showExport=true}else{editorCommand("export-png")} }.keyboardShortcut("e", modifiers: [.command, .shift]) }
+    }
+    private func showEngineeringExamples() {
+        #if os(macOS)
+        engineering?.showCourseExamples=true
+        #endif
+    }
+    private func editorCommand(_ command:String) {
+        #if os(macOS)
+        engineering?.editorCommand(command)
+        #endif
     }
     private func nativeCopyPNG() {
         #if os(macOS)
@@ -99,7 +113,8 @@ struct StudioCommands: Commands {
     }
     private func nativeClipboard(_ selector:String) {
         #if os(macOS)
-        NSApp.sendAction(Selector(selector),to:nil,from:nil)
+        if let engineering,!(NSApp.keyWindow?.firstResponder is NSTextView),["copy:","cut:","paste:"].contains(selector){engineering.clipboardCommand(String(selector.dropLast()))}
+        else{NSApp.sendAction(Selector(selector),to:nil,from:nil)}
         #endif
     }
 }

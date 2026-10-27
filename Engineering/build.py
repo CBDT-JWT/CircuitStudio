@@ -14,7 +14,7 @@ cache.mkdir(parents=True, exist_ok=True)
 temporary = tempfile.TemporaryDirectory(prefix='editor-', dir=cache)
 staging = Path(temporary.name)
 runtime = ['index.html', 'studio.css', 'agent.mjs', 'editor.mjs', 'icons.mjs',
-           'importer.mjs', 'interaction.mjs', 'model.mjs', 'renderer.mjs',
+           'importer.mjs', 'interaction.mjs', 'editing.mjs', 'text-editor.mjs', 'model.mjs', 'renderer.mjs',
            'symbols.mjs', 'symbol-artwork.mjs', 'symbol-artwork-data.mjs', 'course-layouts.json']
 for name in runtime:
     shutil.copy2(source / name, staging / name)

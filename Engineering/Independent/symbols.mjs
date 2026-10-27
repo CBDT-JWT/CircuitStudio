@@ -2,6 +2,7 @@ import {referenceGraphic,referenceLibrarySVG,referenceLibraryInk} from './symbol
 // Independent electrical defaults and annotation editing. Library graphics use
 // the separately licensed vector data requested by the user; see graphics/.
 export const escapeXML = value => String(value ?? '').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+export function annotationText(value){return String(value??'').split(/([_^](?:\{[^}]*\}|[A-Za-z0-9]+))/g).map(part=>{const m=part.match(/^([_^])(?:\{([^}]*)\}|(.+))$/);return m?`<tspan baseline-shift="${m[1]==='_'?'sub':'super'}" font-size="70%">${escapeXML(m[2]??m[3])}</tspan>`:escapeXML(part);}).join('');}
 const line=(x1,y1,x2,y2)=>`<path d="M${x1} ${y1}L${x2} ${y2}"/>`;
 const path=d=>`<path d="${d}"/>`;
 const circle=(x,y,r,fill='none')=>`<circle cx="${x}" cy="${y}" r="${r}" fill="${fill}"/>`;
@@ -59,11 +60,15 @@ export function legacySymbol(raw,parameters={}) {
 }
 export function symbol(raw,parameters={}){
  const original=legacySymbol(raw,parameters),graphic=referenceGraphic(original.id,parameters);
+ if(original.id==='polarity'){
+  const spacing=Math.max(24,Math.min(2000,Number(parameters.spacing)||64)),size=Math.max(8,Math.min(96,Number(parameters.fontSize)||18)),weight=Math.max(1,Math.min(8,Number(parameters.strokeWidth)||2.4)),half=4.5;
+  return {...original,defaults:{text:'V_x',spacing:'64',fontSize:'18',strokeWidth:'2.4'},ink:`<g stroke-width="${weight}" stroke-linecap="square">${line(-spacing/2-half,0,-spacing/2+half,0)}${line(spacing/2-half,0,spacing/2+half,0)}${line(spacing/2,-half,spacing/2,half)}</g>`,uprightInk:`<text data-inline-parameter="text" x="0" y="0" text-anchor="middle" dominant-baseline="central" fill="currentColor" stroke="none" font-size="${size}" font-weight="700" font-style="italic">${annotationText(parameters.text??'V_x')}</text>`,bounds:{x:-spacing/2-6,y:-size,width:spacing+12,height:size*2}};
+ }
  if(!graphic)return original;
  let ink=graphic.ink;
  const id=original.id;
  if(['rectangle','ellipse'].includes(id)&&('width' in parameters||'height' in parameters)){
-  const w=Math.max(10,Math.min(2000,Number(parameters.width)||40)),h=Math.max(10,Math.min(2000,Number(parameters.height)||24));
+  const w=Math.max(1,Math.min(2000,Number(parameters.width)||40)),h=Math.max(1,Math.min(2000,Number(parameters.height)||24));
   ink=id==='rectangle'?`<polygon points="${-w/2},${-h/2} ${w/2},${-h/2} ${w/2},${h/2} ${-w/2},${h/2}" fill="none" stroke-width="1.6"/>`:`<ellipse cx="0" cy="0" rx="${w/2}" ry="${h/2}" fill="none" stroke-width="1.6"/>`;
  }
  if(['line','arrow'].includes(id)&&('dx' in parameters||'dy' in parameters)){
@@ -75,7 +80,7 @@ export function symbol(raw,parameters={}){
  if(id==='polyline'&&parameters.points)ink=original.ink;
  return {...original,...graphic,ink,pins:graphic.pins,bounds:['rectangle','ellipse','line','arrow','polyline'].includes(id)?original.bounds:graphic.bounds};
 }
-export const librarySVG=raw=>referenceLibrarySVG(canonical(raw));
+export const librarySVG=raw=>canonical(raw)==='polarity'?`<svg viewBox="-46 -25 92 50" aria-hidden="true"><g fill="none" stroke="currentColor">${symbol(raw).ink}${symbol(raw).uprightInk}</g></svg>`:referenceLibrarySVG(canonical(raw));
 export const libraryInk=raw=>referenceLibraryInk(canonical(raw));
 export function legacyPinsFor(component){return legacySymbol(component.type,component.parameters).pins.map(p=>({...p,...transformPoint(component,p)}));}
 export function transformPoint(component,p){const a=(component.rotation??0)*Math.PI/180;const x=p.x*(component.flipX?-1:1),y=p.y*(component.flipY?-1:1);return {x:component.x+Math.round((x*Math.cos(a)-y*Math.sin(a))*1e8)/1e8,y:component.y+Math.round((x*Math.sin(a)+y*Math.cos(a))*1e8)/1e8};}

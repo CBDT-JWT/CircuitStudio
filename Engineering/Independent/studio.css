@@ -7,3 +7,7 @@
 @media(prefers-color-scheme:dark){:root{--ink:#e7ece7;--muted:#929e96;--paper:#1a201d;--glass:rgba(35,43,38,.90);--line:rgba(204,231,213,.12);--hover:rgba(89,198,173,.12)}input,select,textarea{background:#11191465}.component svg{color:var(--ink)}#drawing{filter:invert(.86) hue-rotate(130deg)}.primary{color:white}}
 
 .component svg{color:#000}
+
+#canvas-text-editor{position:absolute;z-index:25;padding:8px;border-radius:14px;box-shadow:0 8px 30px #20362a18}#canvas-text-editor textarea{width:100%;min-height:72px;max-height:300px;font-family:Metropolis,-apple-system,sans-serif;line-height:1.4;background:var(--paper);resize:vertical}#canvas-text-editor small{display:block;color:var(--muted);font-size:10px;padding:5px 3px 0}.text-edit-tools{display:flex;align-items:center;gap:2px;margin-bottom:6px}.text-edit-tools input{width:51px;padding:5px}.text-edit-tools button{padding:4px 7px;min-height:28px;font-size:12px}.text-edit-tools [aria-pressed=true]{color:var(--accent);background:var(--hover)}#canvas [data-resize]{cursor:crosshair}#canvas [data-note],#canvas [data-inline-parameter]{cursor:text}
+
+.text-edit-tools{flex-wrap:wrap}

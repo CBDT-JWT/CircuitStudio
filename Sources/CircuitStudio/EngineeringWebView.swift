@@ -112,6 +112,17 @@ final class EngineeringAssetServer: @unchecked Sendable {
         let literal=String(data:try! JSONSerialization.data(withJSONObject:command,options:.fragmentsAllowed),encoding:.utf8)!
         webView?.evaluateJavaScript("window.circuitStudioFileCommand?.(\(literal))",completionHandler:nil)
     }
+    func editorCommand(_ command:String) {
+        Task {do{_ = try await webView?.callAsyncJavaScript("return await window.circuitStudioEditorCommand(command)",arguments:["command":command],in:nil,contentWorld:.page)}catch{self.error=error.localizedDescription}}
+    }
+    #if os(macOS)
+    func clipboardCommand(_ command:String) {
+        Task {do{
+            let handled=try await webView?.callAsyncJavaScript("return await window.circuitStudioClipboardCommand(command)",arguments:["command":command],in:nil,contentWorld:.page) as? Bool
+            if handled != true{NSApp.sendAction(Selector(command+":"),to:nil,from:nil)}
+        }catch{self.error=error.localizedDescription}}
+    }
+    #endif
     func explain() {
         withAnimation(.snappy(duration:0.25)) { if showDrawer && drawerTab == .assistant {showDrawer=false}else{drawerTab = .assistant;showDrawer=true} }
         guard showDrawer else { return }
@@ -171,8 +182,8 @@ final class EngineeringAssetServer: @unchecked Sendable {
     func figureOptions(_ id:String)->CircuitAIPlotOptions {plotOptions[id] ?? CircuitAIPlotOptions()}
     func updateFigure(_ figure:CircuitAIFigure) {plotOptions[figure.id]=figure.options;chat.updateFigure(figure)}
     func hasSimulationResult(id:String) -> Bool { simulationResults[id] != nil }
-    func exportImage(_ format:String,style:String,copy:Bool=false) {
-        Task {do {_ = try await webView?.callAsyncJavaScript("return await window.circuitStudioImage(format,style,copy)",arguments:["format":format,"style":style,"copy":copy],in:nil,contentWorld:.page)}catch{self.error=error.localizedDescription}}
+    func exportImage(_ format:String,style:String,copy:Bool=false,selection:Bool=false) {
+        Task {do {_ = try await webView?.callAsyncJavaScript("return await window.circuitStudioImage(format,style,copy,scope)",arguments:["format":format,"style":style,"copy":copy,"scope":selection ? "selection":"all"],in:nil,contentWorld:.page)}catch{self.error=error.localizedDescription}}
     }
     func copyPNG() { webView?.evaluateJavaScript("window.circuitStudioCopyPNG?.()",completionHandler:nil) }
 }

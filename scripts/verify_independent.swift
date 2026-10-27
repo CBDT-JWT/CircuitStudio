@@ -24,6 +24,8 @@ import WebKit
         var checks:[String]=[]
         func check(_ name:String,_ condition:Bool)throws{guard condition else{throw CircuitError.message("Failed: "+name)};checks.append(name);print("PASS "+name);fflush(nil)}
         guard (try? await web.evaluateJavaScript("typeof circuitStudioAgent")) as? String=="function" else{throw CircuitError.message("Independent editor failed to load ES modules")}
+        for _ in 0..<100 {if (try? await js("const {controller:c}=await import('./editor.mjs');return c.app.interactionReady===true")) as? Bool==true{break};try await Task.sleep(for:.milliseconds(50))}
+        try check("Pointer and keyboard interaction module installs without syntax errors",(try await js("const {controller:c}=await import('./editor.mjs');return c.app.interactionReady===true")) as? Bool==true)
         let secondWorkspace=EngineeringWorkspace();secondWorkspace.start()
         for _ in 0..<100 {if secondWorkspace.url != nil || secondWorkspace.error != nil {break};try await Task.sleep(for:.milliseconds(100))}
         try check("A second workspace recovers an occupied loopback port",secondWorkspace.url != nil && secondWorkspace.url?.port != workspace.url?.port)
@@ -95,7 +97,22 @@ import WebKit
         _=try await js("""
           const {controller:c}=await import('./editor.mjs');c.select(c.cell().components.map(p=>p.id));await c.copySelection();
         """)
-        try check("Selection copies a PNG and editable data atomically",NSPasteboard.general.data(forType:.png) != nil && NSPasteboard.general.string(forType:.string)?.contains("circuitstudio-selection-v1")==true)
+        try check("Selection copies a PNG and editable data atomically",NSPasteboard.general.data(forType:.png) != nil && NSPasteboard.general.string(forType:NSPasteboard.PasteboardType("com.circuitstudio.engineering-selection"))?.contains("circuitstudio-selection-v1")==true && NSPasteboard.general.string(forType:.string)==nil && NSPasteboard.general.data(forType:.tiff) != nil)
+        let geometryChecks=try await js("""
+          const {controller:c}=await import('./editor.mjs');
+          const before=c.cell().wires.map(w=>w.points),count=c.cell().wires.length;await c.pasteSelection();
+          const copied=c.cell().wires.slice(count);const stable=copied.every((w,i)=>JSON.stringify(w.points)===JSON.stringify(before[i].map(p=>({x:p.x+30,y:p.y+30}))));
+          c.current().store.transact('QA move pasted objects',(_,cell)=>c.translateSelection(cell,c.app.selected,{x:40,y:20}));
+          const moved=c.cell().wires.slice(count).every((w,i)=>JSON.stringify(w.points)===JSON.stringify(before[i].map(p=>({x:p.x+70,y:p.y+50}))));
+          const grid=c.app.grid;circuitStudioEditorCommand('grid');const toggled=c.app.grid!==grid&&document.getElementById('grid-fill').style.display===(grid?'none':'');circuitStudioEditorCommand('grid');
+          const {tightSVGDocument}=await import('./renderer.mjs');const svg=await tightSVGDocument(c.cell(),{selection:new Set(copied.map(w=>w.id)),transparent:true});
+          const holder=document.createElement('div');holder.innerHTML=svg;document.body.append(holder);const root=holder.querySelector('svg'),v=root.viewBox.baseVal,b=root.querySelector('[data-export-artwork]').getBBox();const centered=Math.abs((v.x+v.width/2)-(b.x+b.width/2))<.1&&Math.abs((v.y+v.height/2)-(b.y+b.height/2))<.1;holder.remove();
+          c.beginTextEdit({position:{x:0,y:0}});const field=document.querySelector('#canvas-text-editor textarea');field.value='输出 V_{out}';field.dispatchEvent(new KeyboardEvent('keydown',{key:'Enter',bubbles:true,isComposing:true}));const composed=!!document.getElementById('canvas-text-editor');c.finishTextEdit();
+          const note=c.cell().notes.at(-1);c.beginTextEdit({note});document.querySelector('#canvas-text-editor textarea').value='Cancelled';c.finishTextEdit(false);
+          return {stable,moved,toggled,centered,composed,text:note.text,cancelled:c.cell().notes.at(-1).text==='输出 V_{out}'};
+        """) as! [String:Any]
+        for name in ["stable","moved","toggled","centered","composed","cancelled"]{try check("Editing regression: "+name,geometryChecks[name] as? Bool==true)}
+        try check("Chinese inline text commits to the document",geometryChecks["text"] as? String=="输出 V_{out}")
         _=try await js("""
           const {controller:c}=await import('./editor.mjs');circuitStudioSetDrawerInset(0);c.fit();
         """)

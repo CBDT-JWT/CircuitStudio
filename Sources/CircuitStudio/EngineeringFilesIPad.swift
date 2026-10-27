@@ -65,14 +65,14 @@ import CryptoKit
             guard try await choose(UIDocumentPickerViewController(forExporting:[file],asCopy:true)) != nil else{return ["status":"cancelled"]};return ["status":"saved"]
         case "clipboard-prepare":
             guard let text=payload["text"] as? String,text.utf8.count<=20_000_000 else{throw CircuitError.message("选区过大。")}
-            UIPasteboard.general.string=text;return ["ticket":UIPasteboard.general.changeCount]
+            return ["ticket":UIPasteboard.general.changeCount]
         case "clipboard":
             if let ticket=payload["ticket"] as? Int,ticket != UIPasteboard.general.changeCount{throw CircuitError.message("剪贴板已改变，请重新复制。")}
             var item:[String:Any]=[:]
-            if let text=payload["text"] as? String,text.utf8.count<=20_000_000{item[UTType.utf8PlainText.identifier]=text;item["com.circuitstudio.engineering-selection"]=text}
+            if let text=payload["text"] as? String,text.utf8.count<=20_000_000{item["com.circuitstudio.engineering-selection"]=Data(text.utf8)}
             for (key,type) in [("png",UTType.png.identifier),("svg",UTType.svg.identifier)]{if let encoded=payload[key] as? String,encoded.utf8.count<=80_000_000,let data=Data(base64Encoded:encoded){item[type]=data}}
             if !item.isEmpty{UIPasteboard.general.items=[item]};return ["ok":true]
-        case "clipboard-read":return ["text":UIPasteboard.general.string ?? ""]
+        case "clipboard-read":return ["text":UIPasteboard.general.data(forPasteboardType:"com.circuitstudio.engineering-selection").flatMap{String(data:$0,encoding:.utf8)} ?? UIPasteboard.general.string ?? ""]
         case "components":return try components(payload)
         default:throw CircuitError.message("未知文件操作："+action)
         }

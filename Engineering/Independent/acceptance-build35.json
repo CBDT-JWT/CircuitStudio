@@ -1,0 +1,162 @@
+{
+  "version": "1.3.2",
+  "build": 35,
+  "date": "2026-10-28",
+  "changes": [
+    "Preserve authored wire bends and explicit junctions through copy, paste and group moves; keep fixed component pins attached during wire moves",
+    "Two-point or drag drawing, Shift constraints, vertex/side handles, closed polylines and Enter completion",
+    "Editable bold voltage annotation text and draggable/configurable sign spacing",
+    "Inline Unicode text, multiline input, subscript/superscript, cancel and composition guards",
+    "Route native Mac grid, zoom, fit, transforms, selection, clipboard and export commands to the engineering editor",
+    "Crop image exports to actual rendered artwork and preserve on-canvas label placement",
+    "Explicit selection PNG/SVG export",
+    "Expose PNG/TIFF publicly and editable circuit data only in the app-specific clipboard type"
+  ],
+  "validated": {
+    "nodeTests": 30,
+    "allRuntimeModulesParse": true,
+    "nativeBridge": {
+      "checks": [
+        "Pointer and keyboard interaction module installs without syntax errors",
+        "A second workspace recovers an occupied loopback port",
+        "Legacy package opens in the new editor: Common-source amplifier",
+        "Legacy source remains byte-for-byte unchanged: Common-source amplifier",
+        "Legacy package opens in the new editor: Differential pair",
+        "Legacy source remains byte-for-byte unchanged: Differential pair",
+        "Legacy package opens in the new editor: Current mirror",
+        "Legacy source remains byte-for-byte unchanged: Current mirror",
+        "Legacy package opens in the new editor: RC low-pass filter",
+        "Legacy source remains byte-for-byte unchanged: RC low-pass filter",
+        "Imported native RC runs a real simulation",
+        "Legacy package opens in the new editor: CMOS inverter",
+        "Legacy source remains byte-for-byte unchanged: CMOS inverter",
+        "Legacy package opens in the new editor: Blank circuit",
+        "Legacy source remains byte-for-byte unchanged: Blank circuit",
+        "Original inventory and floating drawer reserve the actual schematic",
+        "CircuitAI receives an actual schematic PNG",
+        "Native drawer executes real transient samples: no error",
+        "Clicking a schematic wire updates native observed networks",
+        "CircuitAI returns a styled real waveform",
+        "Multiple simulation runs retain immutable results",
+        "Actual Virtuoso appearance export png",
+        "Actual Virtuoso appearance export svg",
+        "Save and reopen retain topology and simulation settings",
+        "Selection copies a PNG and editable data atomically",
+        "Editing regression: stable",
+        "Editing regression: moved",
+        "Editing regression: toggled",
+        "Editing regression: centered",
+        "Editing regression: composed",
+        "Editing regression: cancelled",
+        "Chinese inline text commits to the document",
+        "Bridge rectifier solves through the shipping bridge"
+      ],
+      "passed": 33
+    },
+    "resourceAudit": {
+      "macOS": {
+        "version": "1.3.2",
+        "build": "35",
+        "runtimeFilesIncludingManifest": 108,
+        "differences": [],
+        "privacyTypes": 5
+      },
+      "iOS": {
+        "version": "1.3.2",
+        "build": "35",
+        "runtimeFilesIncludingManifest": 108,
+        "differences": [],
+        "privacyTypes": 5
+      }
+    },
+    "manualUI": [
+      "Two-click rectangle drawing",
+      "Rectangle east-side drag changes width 240 to 320 screen pixels while keeping left edge fixed",
+      "Double-click voltage annotation opens inline text editor and commits V_{out}",
+      "Dragging the voltage-spacing handle changes sign spacing",
+      "Mac View menu toggles the shipping grid state",
+      "Native Mac Command-A then Command-C copies selection as image",
+      "Native Mac selection PNG export saved through NSSavePanel",
+      "Keynote recognizes the clipboard as a centered image with resize handles; separate QA deck saved without changing the user deck"
+    ],
+    "exportedPNG": {
+      "path": "/Users/weitaojiang/Library/Caches/CircuitStudioQA/Build35/native-final/GUI-selection-export.png",
+      "size": [
+        1085,
+        981
+      ],
+      "alphaBounds": [
+        48,
+        58,
+        1035,
+        938
+      ]
+    },
+    "iPadSimulator": {
+      "engine": "ngspice 47 · on-device",
+      "layouts": [
+        {
+          "actualOrientation": "portrait",
+          "bottomInset": 0,
+          "expectedBottom": 0,
+          "height": 1324,
+          "inset": 372,
+          "requestedOrientation": "landscape",
+          "visible": true,
+          "width": 1032
+        },
+        {
+          "actualOrientation": "portrait",
+          "bottomInset": 0,
+          "expectedBottom": 0,
+          "height": 1324,
+          "inset": 372,
+          "requestedOrientation": "portrait",
+          "visible": true,
+          "width": 1032
+        }
+      ],
+      "routingChecks": [
+        "Files/Handoff URL handler imports .circuit in the new editor without overwriting it",
+        "Saved .circuitstudio.json reopens as a bound project instead of importing again",
+        "The shared New command creates an engineering project"
+      ],
+      "sampleCount": 5008,
+      "status": "passed"
+    }
+  },
+  "notValidated": [
+    "Physical iPad interaction and Keynote for iPad paste",
+    "Actual hardware IME composition; Unicode text and synthetic composition guards were checked",
+    "App Store installation of Build35",
+    "This iPad simulator remained portrait after requesting landscape; landscape interaction was not revalidated"
+  ],
+  "store": {
+    "signedMacAndIOSArchives": true,
+    "uploaded": true,
+    "submitted": false,
+    "status": "Both Apple upload commands succeeded; not submitted for review because App Store Connect browser authentication expired",
+    "automaticReleaseConfiguredForBuild35": false,
+    "uploadedPlatforms": [
+      "macOS",
+      "iOS/iPadOS"
+    ],
+    "uploadEvidence": [
+      "Release/macOS-distribution.log",
+      "Release/iOS-distribution.log"
+    ],
+    "selectedBuild": null,
+    "draftVersionCreated": false
+  },
+  "preview": {
+    "zip": "/Users/weitaojiang/Library/Caches/CircuitStudioPreview/Build35/Circuit-Studio-Preview-35.zip",
+    "sha256": "06619725d620eaba68d2d5ff70610c3f32f0ec52edd16512b1b153696961650d",
+    "signature": "Local ad-hoc preview; separate Apple-signed distribution archives verified"
+  },
+  "evidenceDirectory": "/Users/weitaojiang/Library/Caches/CircuitStudioQA/Build35",
+  "archiveDirectory": "/Users/weitaojiang/Library/Caches/CircuitStudioDistribution-1.3.2-build35/Archives",
+  "referenceRepositoryRevisionInspected": "d8bfd68a46c830cf041e7521fee9db1cf481d067",
+  "referenceEditorCodeBundled": false,
+  "graphicNoticesRetained": true,
+  "editorManifestSHA256": "db83873e1b646d3da409959ba01715f98cd9340b5ba2f2c2d87a29fe301aefc3"
+}
