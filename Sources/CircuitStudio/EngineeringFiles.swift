@@ -31,6 +31,13 @@ import UniformTypeIdentifiers
         let value=URL(fileURLWithPath:raw).lastPathComponent.trimmingCharacters(in:.whitespacesAndNewlines)
         return value.isEmpty ? fallback : String(value.prefix(180))
     }
+    func openProject(_ url:URL,previous:Recent? = nil)throws->[String:Any] {
+        let access=url.startAccessingSecurityScopedResource();defer {if access {url.stopAccessingSecurityScopedResource()}}
+        let contents=try EngineeringProjectFile.read(url)
+        let file=try selectedFile(url,existing:previous ?? recent.first{$0.path==url.path},data:contents.sourceData)
+        recent.removeAll{$0.id==file.id || $0.path==file.path};recent.insert(file,at:0);recent=Array(recent.prefix(30));try remember()
+        return ["status":"opened","file":binding(file),"text":contents.text,"importedLegacy":contents.importedLegacy]
+    }
     func handle(_ action:String,payload:[String:Any])throws->[String:Any] {
         switch action {
         case "project-recent":return ["files":recent.map { ["id":$0.id,"name":$0.name,"path":$0.path] }]
@@ -40,24 +47,24 @@ import UniformTypeIdentifiers
             let url:URL
             if let old { url=try resolve(old) }
             else {
-                let panel=NSOpenPanel();panel.title="打开工程";panel.allowedContentTypes=[.json];panel.canChooseDirectories=false;panel.canChooseFiles=true;panel.allowsMultipleSelection=false
+                let panel=NSOpenPanel();panel.title="打开工程";panel.allowedContentTypes=[.json,.circuit];panel.canChooseDirectories=false;panel.canChooseFiles=true;panel.allowsMultipleSelection=false
                 guard panel.runModal() == .OK,let selected=panel.url else { return ["status":"cancelled"] };url=selected
             }
-            let access=url.startAccessingSecurityScopedResource();defer { if access { url.stopAccessingSecurityScopedResource() } }
-            guard let bytes=try url.resourceValues(forKeys:[.fileSizeKey]).fileSize,bytes <= 20_000_000 else { throw CircuitError.message("Project exceeds 20 MB.") }
-            let data=try Data(contentsOf:url);guard let text=String(data:data,encoding:.utf8) else { throw CircuitError.message("Project must be UTF-8 JSON.") }
-            let file=try selectedFile(url,existing:old,data:data);recent.removeAll { $0.id == file.id || $0.path == file.path };recent.insert(file,at:0);recent=Array(recent.prefix(30));try remember()
-            return ["status":"opened","file":binding(file),"text":text]
+            return try openProject(url,previous:old)
         case "project-save":
             let text=try text(payload,"text",limit:20_000_000),data=Data(text.utf8)
             guard let project=try JSONSerialization.jsonObject(with:data) as? [String:Any],project["documents"] is [[String:Any]] || (project["schema"] as? String == "circuitstudio-project-v1" && project["cells"] is [[String:Any]]) else { throw CircuitError.message("Invalid engineering project.") }
             let bound=payload["binding"] as? [String:Any]
             let old=recent.first { $0.id == bound?["id"] as? String }
-            let saveAs=payload["saveAs"] as? Bool ?? false
+            var saveAs=payload["saveAs"] as? Bool ?? false
+            if let old,!saveAs {
+                let existing=try resolve(old),access=existing.startAccessingSecurityScopedResource();defer{if access{existing.stopAccessingSecurityScopedResource()}}
+                saveAs=try EngineeringProjectFile.read(existing).importedLegacy
+            }
             let url:URL
             if let old,!saveAs { url=try resolve(old) }
             else {
-                let panel=NSSavePanel();panel.allowedContentTypes=[.json];panel.nameFieldStringValue=name(payload["name"] as? String ?? "",fallback:"Project.icproj.json")
+                let panel=NSSavePanel();panel.allowedContentTypes=[.json];panel.nameFieldStringValue=name(payload["name"] as? String ?? "",fallback:"Project.circuitstudio.json")
                 guard panel.runModal() == .OK,let selected=panel.url else { return ["status":"cancelled"] };url=selected
             }
             let access=url.startAccessingSecurityScopedResource();defer { if access { url.stopAccessingSecurityScopedResource() } }

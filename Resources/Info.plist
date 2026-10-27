@@ -27,7 +27,7 @@
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.graphics-design</string>
 	<key>UISupportsDocumentBrowser</key>
-	<true/>
+	<false/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>
@@ -72,6 +72,18 @@
 				<string>com.circuitstudio.circuit</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Circuit Studio Engineering Project</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.json</string>
+			</array>
+		</dict>
 	</array>
 	<key>UTExportedTypeDeclarations</key>
 	<array>
@@ -95,9 +107,16 @@
 			</dict>
 		</dict>
 	</array>
-
-	<key>CircuitAIServiceURL</key><string>$(CIRCUIT_AI_SERVICE_URL)</string>
-	<key>CircuitAIProductIDs</key><array><string>$(CIRCUIT_AI_MONTHLY_PRODUCT_ID)</string></array>
-	<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
+	<key>CircuitAIServiceURL</key>
+	<string>$(CIRCUIT_AI_SERVICE_URL)</string>
+	<key>CircuitAIProductIDs</key>
+	<array>
+		<string>$(CIRCUIT_AI_MONTHLY_PRODUCT_ID)</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 </dict>
 </plist>

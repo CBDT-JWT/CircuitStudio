@@ -72,6 +72,22 @@ final class EngineeringAssetServer: @unchecked Sendable {
     let files=EngineeringFiles()
     let modelLibrary=EngineeringModelLibrary()
     private var server:EngineeringAssetServer?
+    private var incomingProjects=Set<URL>()
+    func openExternalProject(_ url:URL) async {
+        guard incomingProjects.insert(url).inserted else{return}
+        defer{incomingProjects.remove(url)}
+        do {
+            let result=try files.openProject(url)
+            var ready=false
+            for _ in 0..<200 {
+                ready=(try? await webView?.evaluateJavaScript("typeof window.circuitStudioOpenProjectResult==='function'")) as? Bool == true
+                if ready{break}
+                try await Task.sleep(for:.milliseconds(100))
+            }
+            guard ready,let webView else{throw CircuitError.message("编辑器尚未准备好，请重新打开工程。")}
+            _=try await webView.callAsyncJavaScript("return circuitStudioOpenProjectResult(result)",arguments:["result":result],in:nil,contentWorld:.page)
+        } catch {self.error=(error as NSError).userInfo["WKJavaScriptExceptionMessage"] as? String ?? error.localizedDescription}
+    }
     func start() {
         guard server == nil else { return }
         guard let root=Bundle.main.url(forResource:"EngineeringEditor",withExtension:nil) else { error="The offline engineering editor is missing. Build Engineering/build.py first.";return }
@@ -223,6 +239,12 @@ struct EngineeringWorkspaceView:View {
         #endif
         .tint(StudioStyle.accent)
         .task { workspace.start() }
+        #if os(iOS)
+        .onOpenURL {url in Task{await workspace.openExternalProject(url)}}
+        .onContinueUserActivity("com.circuitstudio.edit") {activity in
+            if let value=activity.userInfo?["documentURL"] as? String,let url=URL(string:value) {Task{await workspace.openExternalProject(url)}}
+        }
+        #endif
         #if DEBUG && os(iOS)
         .task { await workspace.runIndependentDebugChecks() }
         #endif

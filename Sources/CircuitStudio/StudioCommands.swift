@@ -1,5 +1,22 @@
 import SwiftUI
 
+#if os(iOS)
+/// iPad keyboard/File commands must use the same editor as touch and Files opens.
+struct EngineeringMobileCommands:Commands {
+    @FocusedValue(\.engineeringEditor) private var workspace
+    var body:some Commands {
+        CommandGroup(replacing:.newItem) {
+            Button("新建电路"){workspace?.fileCommand("new")}.keyboardShortcut("n")
+            Button("打开工程…"){workspace?.fileCommand("open")}.keyboardShortcut("o")
+        }
+        CommandGroup(replacing:.saveItem) {
+            Button("保存"){workspace?.fileCommand("save")}.keyboardShortcut("s")
+            Button("另存为…"){workspace?.fileCommand("save-as")}.keyboardShortcut("s",modifiers:[.command,.shift])
+        }
+    }
+}
+#endif
+
 struct StudioCommands: Commands {
     @FocusedValue(\.circuitEditor) private var store
     #if os(macOS)

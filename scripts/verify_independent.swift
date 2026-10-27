@@ -27,6 +27,27 @@ import WebKit
         let secondWorkspace=EngineeringWorkspace();secondWorkspace.start()
         for _ in 0..<100 {if secondWorkspace.url != nil || secondWorkspace.error != nil {break};try await Task.sleep(for:.milliseconds(100))}
         try check("A second workspace recovers an occupied loopback port",secondWorkspace.url != nil && secondWorkspace.url?.port != workspace.url?.port)
+        for example in CircuitTemplate.allCases {
+            let circuit=example.make(),data=try CircuitArchive(circuit).encoded()
+            let package=output.appendingPathComponent("Legacy-"+example.rawValue+".circuit")
+            try FileManager.default.createDirectory(at:package,withIntermediateDirectories:true)
+            try data.write(to:package.appendingPathComponent("document.json"))
+            let opened=try workspace.files.openProject(package)
+            try Data((opened["text"] as! String).utf8).write(to:output.appendingPathComponent("native-"+example.id+".json"))
+            _=try await js("return circuitStudioOpenProjectResult(result)",["result":opened])
+            let imported=try await js("""
+              const {controller:c}=await import('./editor.mjs');
+              const p=c.current().store.project;
+              return {unbound:c.current().binding===null,legacy:p.importedFrom==='native-circuit',count:c.cell().components.filter(p=>!p.generatedGround).length,name:p.name};
+            """) as! [String:Any]
+            try check("Legacy package opens in the new editor: "+example.rawValue,imported["unbound"] as? Bool==true && imported["legacy"] as? Bool==true && imported["count"] as? Int==circuit.components.count && imported["name"] as? String==circuit.title)
+            try check("Legacy source remains byte-for-byte unchanged: "+example.rawValue,try Data(contentsOf:package.appendingPathComponent("document.json"))==data)
+            if example == .rcFilter {
+                await workspace.refreshSimulationDraft();await workspace.runDrawerSimulation()
+                let id=try CircuitAIStamp.context(try await workspace.assistantSnapshot()).projectID
+                try check("Imported native RC runs a real simulation",workspace.simulationDraft.error==nil && (workspace.simulationResult(id:id)?.result.axis.count ?? 0)>100)
+            }
+        }
         _=try await js("return await circuitStudioLoadCourseCase('A2-18-rc-01',0)")
         let layout=try await js("""
           const {controller:c}=await import('./editor.mjs');

@@ -28,25 +28,35 @@ import CryptoKit
     private func temporary(_ data:Data,name:String)throws->URL{
         let folder=FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString,isDirectory:true);try FileManager.default.createDirectory(at:folder,withIntermediateDirectories:true);let name=String(URL(fileURLWithPath:name).lastPathComponent.prefix(180));let url=folder.appendingPathComponent(name.isEmpty ? "Circuit.json":name);try data.write(to:url,options:.atomic);return url
     }
+    func openProject(_ url:URL,previous:Recent? = nil)throws->[String:Any]{
+        let access=url.startAccessingSecurityScopedResource();defer{if access{url.stopAccessingSecurityScopedResource()}}
+        let contents=try EngineeringProjectFile.read(url)
+        let old=previous ?? recent.first{$0.path==url.path}
+        let entry=try record(url,data:contents.sourceData,previous:old)
+        return ["status":"opened","file":binding(entry),"text":contents.text,"importedLegacy":contents.importedLegacy]
+    }
     func handle(_ action:String,payload:[String:Any])async throws->[String:Any]{
         switch action{
         case "project-recent":return ["files":recent.map{["id":$0.id,"name":$0.name,"path":$0.path]}]
         case "project-forget":recent.removeAll{$0.id==payload["id"] as? String};try remember();return ["status":"done"]
         case "project-open":
             let old=recent.first{$0.id==payload["id"] as? String};let selected:URL?
-            if let old{selected=try resolve(old)}else{selected=try await choose(UIDocumentPickerViewController(forOpeningContentTypes:[.json],asCopy:false))}
-            guard let url=selected else{return ["status":"cancelled"]};let access=url.startAccessingSecurityScopedResource();defer{if access{url.stopAccessingSecurityScopedResource()}}
-            guard (try url.resourceValues(forKeys:[.fileSizeKey]).fileSize ?? Int.max)<=20_000_000 else{throw CircuitError.message("工程超过 20MB。")}
-            let data=try Data(contentsOf:url);guard let text=String(data:data,encoding:.utf8) else{throw CircuitError.message("工程不是有效 JSON。")}
-            return ["status":"opened","file":binding(try record(url,data:data,previous:old)),"text":text]
+            if let old{selected=try resolve(old)}else{selected=try await choose(UIDocumentPickerViewController(forOpeningContentTypes:[.json,.circuit],asCopy:false))}
+            guard let url=selected else{return ["status":"cancelled"]}
+            return try openProject(url,previous:old)
         case "project-save":
             guard let text=payload["text"] as? String,text.utf8.count<=20_000_000,let object=try JSONSerialization.jsonObject(with:Data(text.utf8)) as? [String:Any],object["documents"] is [[String:Any]] || (object["schema"] as? String == "circuitstudio-project-v1" && object["cells"] is [[String:Any]]) else{throw CircuitError.message("工程内容无效。")}
-            let data=Data(text.utf8),bound=payload["binding"] as? [String:Any],saveAs=payload["saveAs"] as? Bool ?? false
+            let data=Data(text.utf8),bound=payload["binding"] as? [String:Any]
+            var saveAs=payload["saveAs"] as? Bool ?? false
             let old=recent.first{$0.id==bound?["id"] as? String};let url:URL
+            if let old,!saveAs {
+                let existing=try resolve(old),access=existing.startAccessingSecurityScopedResource();defer{if access{existing.stopAccessingSecurityScopedResource()}}
+                saveAs=try EngineeringProjectFile.read(existing).importedLegacy
+            }
             if let old,!saveAs{url=try resolve(old);let access=url.startAccessingSecurityScopedResource();defer{if access{url.stopAccessingSecurityScopedResource()}}
                 guard bound?["byteDigest"] as? String == digest(try Data(contentsOf:url)),bound?["revision"] as? Int == old.revision else{return ["status":"conflict","message":"文件已在外部修改，请重新打开或另存为。"]}
                 try data.write(to:url,options:.atomic)
-            }else{let temporary=try temporary(data,name:payload["name"] as? String ?? "Circuit.icproj.json");guard let selected=try await choose(UIDocumentPickerViewController(forExporting:[temporary],asCopy:true)) else{return ["status":"cancelled"]};url=selected}
+            }else{let temporary=try temporary(data,name:payload["name"] as? String ?? "Circuit.circuitstudio.json");guard let selected=try await choose(UIDocumentPickerViewController(forExporting:[temporary],asCopy:true)) else{return ["status":"cancelled"]};url=selected}
             let access=url.startAccessingSecurityScopedResource();defer{if access{url.stopAccessingSecurityScopedResource()}}
             return ["status":"saved","file":binding(try record(url,data:data,previous:saveAs ? nil:old))]
         case "export":

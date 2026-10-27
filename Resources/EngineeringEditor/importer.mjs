@@ -50,8 +50,74 @@ export function prepareCourse(example,layouts){let source=example.netlist+'\n'+e
  if(example.id==='A2-18-dual-02')Object.assign(positions,{R1:[120,20,270],L1:[280,100]});
  if(example.id==='A2-20-06')Object.assign(positions,{C3:[140,160],C4:[390,160],C1:[270,260],C2:[520,260],RREF1:[880,200],RREF2:[1000,200]});
  const project=parseSpice(source,{name:example.title,positions,definitions});project.courseCaseId=example.id;project.modelPacket=example.modelPacket;routeImportedProject(project);return project;}
+const nativeKinds={polarizedCapacitor:'capacitor',voltageSource:'voltage-source',acVoltage:'voltage-source',pulseSource:'voltage-source',currentSource:'current-source',opAmp:'opamp',vdd:'vdd-port',vss:'vdd-port',port:'bias-port',largeInductor:'inductor-large',powerRail:'vdd-port',biasPort:'bias-port',cellPin:'cell-pin',noConnect:'no-connect',opAmpSmall:'opamp-small',fdAmp:'fdamp',fdAmpSmall:'fdamp-small',fdComparator:'fd-comparator',dFlipFlop:'dff',dFlipFlopReset:'dff-reset',dFlipFlopQ:'dff-q',delayCell:'delay',andGate:'and',orGate:'or',nandGate:'nand',norGate:'nor',xorGate:'xor',xnorGate:'xnor',depletionNMOS:'depletion-nmos',depletionPMOS:'depletion-pmos',led:'diode'};
+function nativePin(type,name){
+ if(type==='ground')return '1';
+ if(['voltage-source','current-source','battery','vcvs','vccs','cccs','ccvs'].includes(type))return ({'+':'1','-':'2'})[name]??name;
+ if(['diode','zener'].includes(type))return ({A:'1',K:'2'})[name]??name;
+ if(['open-switch','closed-switch','controlled-switch','voltage-switch','simple-switch','spdt-switch','chopper'].includes(type))return ({P:'1',N:'2',N2:'3'})[name]??name;
+ if(type==='transformer')return ({P1:'1',P2:'2',P3:'3',P4:'4'})[name]??name;
+ if(['voltage-amplifier','transconductance','adc','dac'].includes(type))return name==='+'?'IN':name==='-'?null:name;
+ if(['and','or','nand','nor','xor','xnor'].includes(type))return name.startsWith('IN')?'ABCD'[Number(name.slice(2))-1]:name;
+ if(['adder','multiplier'].includes(type))return ({IN:'A',IN2:'B'})[name]??name;
+ if(['inverter','buffer'].includes(type))return name==='A'?'IN':name;
+ if(type.startsWith('dff'))return name==='QN'?'QB':name;
+ return name;
+}
+export function importNativeProject(packet){
+ const archive=packet.archive,old=archive?.circuit;
+ if(!old||![1,2,3].includes(archive.formatVersion)||!Array.isArray(old.components)||!packet.terminalNets)throw Error('旧工程格式不完整，原文件未改动。');
+ if(old.figures?.length||old.figureConnectors?.length||old.handDrawing||old.annotationDrawing)throw Error('此旧工程包含图解或手写图层，暂不能完整迁移；原文件已保留，请先导出这些图层。');
+ const project=newProject(old.title),cell=project.cells[0];project.importedFrom='native-circuit';project.legacyArchive=clone(archive);
+ let parsed;if(packet.spice){try{parsed=parseSpice(packet.spice);}catch{/* Invalid drafts may still be edited. */}}
+ project.models=parsed?.models??old.modelLibrary??'';project.subcircuits=parsed?.subcircuits??'';
+ const color=c=>c?'#'+String(c).replace(/^#/,''):null;
+ for(const original of old.components){
+  const type=nativeKinds[original.kind]??original.kind.replace(/[A-Z]/g,m=>'-'+m.toLowerCase()),parameters={...original.parameters};
+  if(type==='voltage-source'||type==='battery'||type==='current-source'){
+   parameters.dc=parameters.value??'0';parameters.acMagnitude=parameters.ac??'';parameters.acPhase='0';
+   parameters.waveform=original.kind==='acVoltage'?'sin':original.kind==='pulseSource'?'pulse':'dc';
+   if(parameters.waveform==='sin')parameters.offset=parameters.value??'0';
+   if(parameters.waveform==='pulse')Object.assign(parameters,{low:parameters.value??'0',delay:'0',rise:'1n',fall:'1n'});
+  }
+  if(['vdd-port','bias-port','cell-pin'].includes(type))parameters.name=original.name;
+  if(['nmos','pmos','depletion-nmos','depletion-pmos','ndmos','pdmos'].includes(type)&&parameters.NF){
+   const multiplier=length(parameters.M??'1')*length(parameters.NF);if(Number.isFinite(multiplier)){parameters.M=String(multiplier);delete parameters.NF;}
+  }
+  let part;try{part=makeComponent(type,original.position.x,original.position.y,original.name,parameters);}catch{throw Error('暂不能迁移元件 '+original.name+'（'+original.kind+'）；原文件未改动。');}
+  part.id=original.id;part.x=original.position.x;part.y=original.position.y;part.rotation=original.rotation??0;part.flipX=!!original.flipX;part.flipY=!!original.flipY;part.color=color(original.appearance?.color);
+  part.showReference=!!original.showName&&!!symbol(type,parameters).prefix;part.showValue=!!original.showValue&&!!symbol(type,parameters).defaults.value;
+  if(original.nameOffset){part.referenceOffset={x:original.nameOffset.x,y:original.nameOffset.y};part.labelLayoutManual=true;}
+  if(original.valueOffset){part.valueOffset={x:original.valueOffset.x,y:original.valueOffset.y};part.labelLayoutManual=true;}
+  const previous=packet.terminalNets[original.id.toUpperCase()]??packet.terminalNets[original.id]??{},used=new Set();
+  for(const pin of symbol(type,part.parameters).pins){
+   const name=nativePin(type,pin.name);if(name&&previous[name]){part.netHints[pin.name]=previous[name];used.add(name);}
+   else if(pin.virtual&&pin.defaultNet)part.netHints[pin.name]=pin.defaultNet;
+   else if(!pin.hidden)throw Error(original.name+' 的端口 '+pin.name+' 无法完整迁移；原文件未改动。');
+  }
+  for(const [name,net] of Object.entries(previous))if(!used.has(name)){
+   const connected=Object.values(packet.terminalNets).reduce((count,parts)=>count+Object.values(parts).filter(n=>n===net).length,0)>1||Object.values(packet.wireNets??{}).includes(net);
+   if(connected)throw Error(original.name+' 的已连接端口 '+name+' 尚不能迁移；原文件未改动。');
+  }
+  const prototype=parsed?.cells[0].components.find(c=>c.reference===original.name);
+  if(prototype?.type===type&&prototype.card&&!['nmos','pmos'].includes(type)){
+   for(const key of ['card','cardPins','cardParameters','cardParameterPrefixes'])part[key]=prototype[key];
+   part.parameters={...prototype.parameters,...part.parameters};
+  }
+  cell.components.push(part);
+ }
+ routeImportedProject(project);
+ const issues=importedNetErrors(project);if(issues.length)throw Error('旧工程连接检查未通过，原文件未改动：'+issues.join('；'));
+ for(const label of old.labels??[]){
+  if(label.isNet){cell.observedNames??=[];const native=String(label.text).replace(/[{}_]/g,'');cell.observedNames.push(native);}
+  else cell.notes.push({id:label.id,position:{x:label.position.x,y:label.position.y},text:label.text,size:14,color:color(label.appearance?.color)});
+ }
+ project.simulationConfiguration={settings:old.simulation,supplies:Object.entries(packet.supplies??old.supplyVoltages??{VDD:'1.8',VSS:'0'}).map(([n,v])=>n+'='+v).join('\n'),models:''};
+ return validateProject(project);
+}
 export function importProject(text){
- const raw=JSON.parse(text);if(raw.schema==='circuitstudio-project-v1'){
+ const raw=JSON.parse(text);if(raw.schema==='circuitstudio-native-import-v1')return importNativeProject(raw);
+ if(raw.schema==='circuitstudio-project-v1'){
   validateProject(raw);
   if(raw.symbolGeometryVersion!==2){
    for(const c of raw.cells){

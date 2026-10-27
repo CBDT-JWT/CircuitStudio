@@ -38,11 +38,10 @@ extension FocusedValues { var circuitEditor: EditorStore? { get { self[EditorFoc
     #endif
     var body: some Scene {
         #if os(iOS)
+        // One scene owns new, restored and externally opened iPad/iPhone projects.
+        // Registering DocumentGroup here restored the retired editor on upgrades.
         WindowGroup("Circuit Studio",id:"engineering") {EngineeringWorkspaceView()}
-        // Existing .circuit documents retain their native document editor.
-        DocumentGroup(newDocument: CircuitFile()) { file in
-            WorkspaceView(document: file.$document, fileURL: file.fileURL)
-        }.commands { StudioCommands() }
+            .commands { EngineeringMobileCommands() }
         #else
         DocumentGroup(newDocument: CircuitFile()) { file in
             WorkspaceView(document: file.$document, fileURL: file.fileURL)

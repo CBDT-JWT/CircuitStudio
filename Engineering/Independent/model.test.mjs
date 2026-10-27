@@ -62,3 +62,18 @@ test('Build32 saved circuits migrate source controls and reconnect physical term
  assert.equal(project.symbolGeometryVersion,2);assert.deepEqual(importedNetErrors(project),[]);assert.match(netlist(project),/ER VR 0 IN OUT 1/);
  assert.equal(project.simulationConfiguration.settings.analysis,'AC analysis');assert.equal(JSON.parse(original).symbolGeometryVersion,undefined);
 });
+
+
+test('native .circuit imports retain graph, settings and source archive without mutating input',async()=>{
+ const fs=await import('node:fs/promises'),{importProject}=await import('./importer.mjs');
+ const packet=JSON.parse(await fs.readFile(new URL('./fixtures/native-rc.json',import.meta.url),'utf8')),before=JSON.stringify(packet),p=importProject(before);
+ assert.equal(p.importedFrom,'native-circuit');assert.deepEqual(p.legacyArchive,packet.archive);assert.equal(JSON.stringify(packet),before);
+ assert.deepEqual(importedNetErrors(p),[]);assert.equal(p.simulationConfiguration.settings.analysis,packet.archive.circuit.simulation.analysis);
+ const resistor=packet.archive.circuit.components.find(c=>c.name==='R1'),expected=packet.terminalNets[resistor.id.toUpperCase()];
+ assert.deepEqual(netlist(p).split('\n').find(s=>s.startsWith('R1 ')).split(' ').slice(1,3),[expected['1'],expected['2']]);assert.match(netlist(p),/C1 VOUT 0 10n/);
+ const saved=JSON.stringify(p),reopened=importProject(saved);assert.equal(reopened.symbolGeometryVersion,2);assert.equal(netlist(reopened),netlist(p));
+});
+test('unsupported legacy layers fail explicitly instead of silently losing user content',async()=>{
+ const fs=await import('node:fs/promises'),{importProject}=await import('./importer.mjs');const packet=JSON.parse(await fs.readFile(new URL('./fixtures/native-rc.json',import.meta.url),'utf8'));
+ packet.archive.circuit.handDrawing='AQID';assert.throws(()=>importProject(JSON.stringify(packet)),/原文件已保留/);
+});
