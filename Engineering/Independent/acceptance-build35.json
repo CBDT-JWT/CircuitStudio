@@ -134,9 +134,9 @@
   "store": {
     "signedMacAndIOSArchives": true,
     "uploaded": true,
-    "submitted": false,
-    "status": "Both Apple upload commands succeeded; not submitted for review because App Store Connect browser authentication expired",
-    "automaticReleaseConfiguredForBuild35": false,
+    "submitted": true,
+    "status": "macOS and iOS/iPadOS 1.3.2 (35) Waiting for Review",
+    "automaticReleaseConfiguredForBuild35": true,
     "uploadedPlatforms": [
       "macOS",
       "iOS/iPadOS"
@@ -145,8 +145,34 @@
       "Release/macOS-distribution.log",
       "Release/iOS-distribution.log"
     ],
-    "selectedBuild": null,
-    "draftVersionCreated": false
+    "selectedBuild": 35,
+    "draftVersionCreated": true,
+    "platformSubmissions": {
+      "iOS": {
+        "version": "1.3.2",
+        "build": 35,
+        "buildID": "f41aef33-cb34-43a7-9e2a-a4983e267987",
+        "submissionID": "ed1a9496-c22e-47c4-9564-ede9be00c267",
+        "status": "Waiting for Review",
+        "automaticReleaseAfterApproval": true,
+        "proof": "/Users/weitaojiang/Library/Caches/CircuitStudioQA/Build35/ios-build35-submitted.png"
+      },
+      "macOS": {
+        "version": "1.3.2",
+        "build": 35,
+        "buildID": "b28fcb29-a431-4f16-bc8a-ddd8910bac13",
+        "submissionID": "03592f73-ae47-4b24-9171-632e21d0d4d0",
+        "status": "Waiting for Review",
+        "automaticReleaseAfterApproval": true,
+        "proof": "/Users/weitaojiang/Library/Caches/CircuitStudioQA/Build35/macos-build35-waiting-review.png",
+        "replacedSubmissionID": "9f8aaeff-041c-426e-bce4-e313ee4df2e0",
+        "replacedBuild": 33
+      }
+    },
+    "blocker": null,
+    "submissionVerifiedAt": "2026-10-28T15:04:51+08:00",
+    "storefrontReleaseConfirmed": false,
+    "reviewQueueProof": "/Users/weitaojiang/Library/Caches/CircuitStudioQA/Build35/both-platforms-waiting-review.png"
   },
   "preview": {
     "zip": "/Users/weitaojiang/Library/Caches/CircuitStudioPreview/Build35/Circuit-Studio-Preview-35.zip",
