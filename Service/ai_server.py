@@ -179,7 +179,6 @@ def create_app(settings=None, subscription_verifier=None, provider=None, agent_p
         MONTHLY_CALLS=200,
         ADMIN_PASSWORD_HASH=os.environ.get('CS_AI_ADMIN_PASSWORD_HASH',''),
         DEEPSEEK_MODEL='deepseek-flash',
-        REQUESTS_PER_HOUR=30,
         DEEPSEEK_API_KEY=os.environ.get('DEEPSEEK_API_KEY', ''),
         PRODUCT_IDS=os.environ.get('CS_AI_PRODUCT_IDS', 'com.circuitstudio.app.ai.monthly').split(','),
         APPLE_BUNDLE_ID=os.environ.get('CS_APPLE_BUNDLE_ID', 'com.circuitstudio.app'),
@@ -344,9 +343,6 @@ def create_app(settings=None, subscription_verifier=None, provider=None, agent_p
             pending = connection.execute('SELECT 1 FROM requests WHERE subject=? AND state=?', (access.subject, 'pending')).fetchone()
             if pending:
                 raise AccessError('Another AI request is already running for this subscription.', 409)
-            recent = connection.execute('SELECT COUNT(*) FROM requests WHERE subject=? AND created>?', (access.subject, time.time() - 3600)).fetchone()[0]
-            if recent >= app.config['REQUESTS_PER_HOUR'] * (3 if agent else 1):
-                raise AccessError('Too many requests. Try again later.', 429)
             connection.execute('INSERT OR IGNORE INTO usage(subject,period) VALUES (?,?)', (access.subject, access.period))
             used = connection.execute('SELECT used FROM usage WHERE subject=? AND period=?', (access.subject, access.period)).fetchone()[0]
             if used >= limit(access):

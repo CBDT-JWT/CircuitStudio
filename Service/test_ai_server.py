@@ -71,6 +71,17 @@ class AIServiceTests(unittest.TestCase):
         self.assertEqual(app.test_client().post('/explain', json=self.body, headers=self.headers()).status_code, 502)
         self.assertEqual(self.used(), 0)
 
+    def test_recent_requests_do_not_prevent_a_valid_request(self):
+        with closing(sqlite3.connect(self.database)) as connection, connection:
+            connection.executemany('INSERT INTO requests VALUES (?,?,?,?,?,?,?)', [
+                ('subscriber', 'previous-request-'+str(i), 'billing-period', 'hash', 'failed', None, time.time())
+                for i in range(100)
+            ])
+        response = self.client.post('/explain', json=self.body, headers=self.headers())
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(self.invocations), 1)
+        self.assertEqual(self.used(), 1)
+
     def test_expired_subscription_and_unconfigured_verifier_fail_closed(self):
         expired = create_app(self.settings, subscription_verifier=lambda _: Entitlement('subscriber', 'period', 1), provider=lambda *_: 'answer')
         self.assertEqual(expired.test_client().post('/explain', json=self.body, headers=self.headers()).status_code, 403)
