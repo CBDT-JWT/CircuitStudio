@@ -49,7 +49,8 @@ def main():
     # These are public app identifiers and trust roots; no Apple private key is needed
     # for signed transaction verification and signed Server Notifications V2.
     env_text=environment.read_text()
-    for name,value in [('CS_APPLE_APP_ID','6819344214'),('CS_APPLE_ROOT_CERTS',str(certificates)),('CS_APPLE_BUNDLE_ID','com.circuitstudio.app'),('CS_APPLE_ENVIRONMENT','Production')]:
+    # TestFlight uses Apple-signed Sandbox purchases alongside production users.
+    for name,value in [('CS_APPLE_APP_ID','6819344214'),('CS_APPLE_ROOT_CERTS',str(certificates)),('CS_APPLE_BUNDLE_ID','com.circuitstudio.app'),('CS_APPLE_ENVIRONMENT','Production'),('CS_APPLE_ENVIRONMENTS','Production,Sandbox')]:
         if not re.search(r'^'+name+r'=',env_text,re.M): env_text += name+'='+value+'\n'
     environment.write_text(env_text);environment.chmod(0o600)
     unit=Path('/etc/systemd/system/circuitstudio-ai.service')

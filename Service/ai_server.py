@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import base64
 import hashlib
 import json
+import logging
 import os
 from pathlib import Path
 import re
@@ -37,63 +38,96 @@ class AppleSubscriptionVerifier:
         from appstoreserverlibrary.models.Environment import Environment
         from appstoreserverlibrary.signed_data_verifier import SignedDataVerifier
 
-        environment_name = config['APPLE_ENVIRONMENT']
-        if environment_name not in ('Production', 'Sandbox'):
-            raise ValueError('APPLE_ENVIRONMENT must be Production or Sandbox')
-        environment = Environment(environment_name)
+        names = config.get('APPLE_ENVIRONMENTS') or config['APPLE_ENVIRONMENT']
+        self.environments = tuple(dict.fromkeys(name.strip() for name in names.split(',')))
+        if not self.environments or any(name not in ('Production', 'Sandbox') for name in self.environments):
+            raise ValueError('Apple environments must be Production or Sandbox')
         roots = [path.read_bytes() for path in Path(config['APPLE_ROOT_CERTS']).glob('*.cer')]
         if not roots:
             raise ValueError('Apple root certificates are required')
         app_id = int(config['APPLE_APP_ID']) if config['APPLE_APP_ID'] else None
-        self.verifier = SignedDataVerifier(roots, True, environment, config['APPLE_BUNDLE_ID'], app_id)
-        self.client = None
-        if all(config.get(key) for key in ('APPLE_KEY_PATH','APPLE_KEY_ID','APPLE_ISSUER_ID')):
-            self.client = AppStoreServerAPIClient(Path(config['APPLE_KEY_PATH']).read_bytes(), config['APPLE_KEY_ID'],
-                                                 config['APPLE_ISSUER_ID'], config['APPLE_BUNDLE_ID'], environment)
+        self.verifiers = {}
+        self.clients = {}
+        for name in self.environments:
+            environment = Environment(name)
+            self.verifiers[name] = SignedDataVerifier(roots, True, environment, config['APPLE_BUNDLE_ID'], app_id)
+            self.clients[name] = None
+            if all(config.get(key) for key in ('APPLE_KEY_PATH','APPLE_KEY_ID','APPLE_ISSUER_ID')):
+                self.clients[name] = AppStoreServerAPIClient(Path(config['APPLE_KEY_PATH']).read_bytes(), config['APPLE_KEY_ID'],
+                                                            config['APPLE_ISSUER_ID'], config['APPLE_BUNDLE_ID'], environment)
         self.product_ids = set(config['PRODUCT_IDS'])
         self.calls = config['MONTHLY_CALLS']
 
-    def __call__(self, signed_transaction):
-        from appstoreserverlibrary.models.Status import Status
-        from appstoreserverlibrary.signed_data_verifier import VerificationException
-        try:
-            proof = self.verifier.verify_and_decode_signed_transaction(signed_transaction)
-        except VerificationException as error:
-            raise AccessError('Subscription proof is invalid.', 401) from error
-        if proof.productId not in self.product_ids or not proof.originalTransactionId:
+    def _verify(self, signed, method, message, environment=None):
+        from appstoreserverlibrary.signed_data_verifier import VerificationException, VerificationStatus
+        for name in (environment,) if environment else self.environments:
+            verifier = self.verifiers[name]
+            try:
+                return getattr(verifier, method)(signed), name
+            except VerificationException as error:
+                # Only a fully signature-verified environment mismatch can try the
+                # other configured Apple environment. Never accept Xcode/local JWS.
+                if error.status == VerificationStatus.INVALID_ENVIRONMENT:
+                    continue
+                logging.getLogger(__name__).warning('Apple verification failed: operation=%s environment=%s status=%s',
+                                                   method, name, error.status.name)
+                if error.status == VerificationStatus.RETRYABLE_VERIFICATION_FAILURE:
+                    raise AccessError('Subscription verification is temporarily unavailable. Please try again.', 503) from error
+                raise AccessError(message, 401) from error
+        raise AccessError(message, 401)
+
+    @staticmethod
+    def _identity(value, environment):
+        # Keep existing production quota/revocation keys; isolate beta purchases.
+        return ('sandbox:' if environment == 'Sandbox' else '') + str(value)
+
+    def _entitlement(self, proof, environment):
+        if proof.productId not in self.product_ids or not proof.originalTransactionId or not proof.transactionId:
             raise AccessError('This subscription does not include Circuit Studio AI.')
         if proof.revocationDate is not None or not proof.expiresDate or not proof.purchaseDate or proof.expiresDate/1000 <= time.time():
             raise AccessError('This subscription has expired or was revoked.')
-        if self.client is None:
+        return Entitlement(self._identity(proof.originalTransactionId, environment), str(proof.purchaseDate),
+                           proof.expiresDate/1000, self.calls, self._identity(proof.transactionId, environment))
+
+    def __call__(self, signed_transaction):
+        from appstoreserverlibrary.models.Status import Status
+        proof, environment = self._verify(signed_transaction, 'verify_and_decode_signed_transaction', 'Subscription proof is invalid.')
+        access = self._entitlement(proof, environment)
+        client = self.clients[environment]
+        if client is None:
             # Apple JWS signature + online certificate checks authenticate the purchase.
             # Server Notifications V2 invalidate refunded transaction IDs immediately on receipt.
-            return Entitlement(str(proof.originalTransactionId),str(proof.purchaseDate),proof.expiresDate/1000,self.calls,str(proof.transactionId))
+            return access
         # When an App Store Server API key is configured, also fetch current status.
-        statuses = self.client.get_all_subscription_statuses(proof.originalTransactionId)
+        statuses = client.get_all_subscription_statuses(proof.originalTransactionId)
         for group in statuses.data or []:
             for item in group.lastTransactions or []:
                 if item.originalTransactionId != proof.originalTransactionId or item.status != Status.ACTIVE:
                     continue
-                current = self.verifier.verify_and_decode_signed_transaction(item.signedTransactionInfo)
-                if current.productId in self.product_ids and current.revocationDate is None and current.expiresDate:
+                # Status responses must belong to the same verified environment.
+                current, _ = self._verify(item.signedTransactionInfo, 'verify_and_decode_signed_transaction',
+                                          'Subscription proof is invalid.', environment=environment)
+                if current.originalTransactionId == proof.originalTransactionId and current.productId in self.product_ids and current.revocationDate is None and current.expiresDate:
                     expires = current.expiresDate / 1000
                     if expires > time.time() and current.purchaseDate:
-                        return Entitlement(str(current.originalTransactionId), str(current.purchaseDate), expires, self.calls,str(current.transactionId))
+                        return self._entitlement(current, environment)
         raise AccessError('An active AI subscription is required. Restore purchases or renew your subscription.')
 
     def notification(self, signed_payload):
         from appstoreserverlibrary.signed_data_verifier import VerificationException
         try:
-            decoded=self.verifier.verify_and_decode_notification(signed_payload)
+            decoded, environment = self._verify(signed_payload, 'verify_and_decode_notification', 'Invalid Apple notification.')
             info=decoded.data.signedTransactionInfo if decoded.data else None
-            proof=self.verifier.verify_and_decode_signed_transaction(info) if info else None
+            proof, _ = self._verify(info, 'verify_and_decode_signed_transaction', 'Invalid Apple notification.',
+                                    environment=environment) if info else (None, environment)
         except (VerificationException,TypeError,ValueError) as error:
             raise AccessError('Invalid Apple notification.',401) from error
         if proof is None: return None
         if proof.productId not in self.product_ids: raise AccessError('Unknown subscription product.',403)
         kind=decoded.notificationType.value if decoded.notificationType else ''
         if kind not in ('REFUND','REVOKE','REFUND_REVERSED'): return None
-        return str(proof.transactionId),int(decoded.signedDate or 0),kind!='REFUND_REVERSED'
+        if not proof.transactionId: raise AccessError('Invalid Apple notification.',401)
+        return self._identity(proof.transactionId, environment),int(decoded.signedDate or 0),kind!='REFUND_REVERSED'
 
 
 class NoRedirect(HTTPRedirectHandler):
@@ -150,6 +184,7 @@ def create_app(settings=None, subscription_verifier=None, provider=None, agent_p
         PRODUCT_IDS=os.environ.get('CS_AI_PRODUCT_IDS', 'com.circuitstudio.app.ai.monthly').split(','),
         APPLE_BUNDLE_ID=os.environ.get('CS_APPLE_BUNDLE_ID', 'com.circuitstudio.app'),
         APPLE_ENVIRONMENT=os.environ.get('CS_APPLE_ENVIRONMENT', 'Production'),
+        APPLE_ENVIRONMENTS=os.environ.get('CS_APPLE_ENVIRONMENTS', ''),
         APPLE_APP_ID=os.environ.get('CS_APPLE_APP_ID', ''),
         APPLE_ROOT_CERTS=os.environ.get('CS_APPLE_ROOT_CERTS', ''),
         APPLE_KEY_PATH=os.environ.get('CS_APPLE_KEY_PATH', ''),
@@ -272,7 +307,8 @@ def create_app(settings=None, subscription_verifier=None, provider=None, agent_p
 
     @app.get('/health')
     def health():
-        return jsonify(status='ok',providerConfigured=bool(admin.provider_config()['DEEPSEEK_API_KEY']),subscriptionVerificationConfigured=verifier is not None)
+        return jsonify(status='ok',providerConfigured=bool(admin.provider_config()['DEEPSEEK_API_KEY']),subscriptionVerificationConfigured=verifier is not None,
+                       subscriptionEnvironments=list(getattr(verifier,'environments',())))
 
     def answer(vision, agent=False):
         body = validate(vision)
