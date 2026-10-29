@@ -26,6 +26,32 @@ import WebKit
         guard (try? await web.evaluateJavaScript("typeof circuitStudioAgent")) as? String=="function" else{throw CircuitError.message("Independent editor failed to load ES modules")}
         for _ in 0..<100 {if (try? await js("const {controller:c}=await import('./editor.mjs');return c.app.interactionReady===true")) as? Bool==true{break};try await Task.sleep(for:.milliseconds(50))}
         try check("Pointer and keyboard interaction module installs without syntax errors",(try await js("const {controller:c}=await import('./editor.mjs');return c.app.interactionReady===true")) as? Bool==true)
+        for width in [320,393,600,768,1440] {
+            window.setContentSize(NSSize(width:width,height:850))
+            try await Task.sleep(for:.milliseconds(150))
+            let layout=try await js("""
+                const {controller:c}=await import('./editor.mjs');
+                if(c.app.library)await c.action('library');
+                const controls=[...document.querySelectorAll('#tools>.icon')].map(e=>e.getBoundingClientRect());
+                return controls.every(r=>r.left>=0&&r.right<=innerWidth&&r.bottom<document.querySelector('#statusbar').getBoundingClientRect().top&&(innerWidth>600||r.width>=44&&r.height>=44));
+            """) as? Bool==true
+            try check("Drawing controls fit and retain their touch targets at width \(width)",layout)
+        }
+        window.setContentSize(NSSize(width:393,height:850))
+        try await Task.sleep(for:.milliseconds(150))
+        try check("Compact library dismisses after choosing a device",(try await js("""
+            const {controller:c}=await import('./editor.mjs');await c.action('show-library');
+            document.querySelector('[data-place=resistor]').click();
+            return document.querySelector('#library').hidden&&document.querySelector('#library-toggle').getAttribute('aria-expanded')==='false';
+        """)) as? Bool==true)
+        try check("Keyboard tab navigation activates and focuses the previous document",(try await js("""
+            const {controller:c}=await import('./editor.mjs');c.createTab();
+            document.querySelector('[role=tab][aria-selected=true]').dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowLeft',bubbles:true}));
+            return c.app.active===0&&document.activeElement?.getAttribute('aria-selected')==='true';
+        """)) as? Bool==true)
+        window.setContentSize(NSSize(width:1440,height:900))
+        try await Task.sleep(for:.milliseconds(150))
+        _=try await js("const {controller:c}=await import('./editor.mjs');await c.action('select');await c.action('show-library')")
         let secondWorkspace=EngineeringWorkspace();secondWorkspace.start()
         for _ in 0..<100 {if secondWorkspace.url != nil || secondWorkspace.error != nil {break};try await Task.sleep(for:.milliseconds(100))}
         try check("A second workspace recovers an occupied loopback port",secondWorkspace.url != nil && secondWorkspace.url?.port != workspace.url?.port)

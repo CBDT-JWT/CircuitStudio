@@ -1,0 +1,113 @@
+{
+  "date": "2026-10-29",
+  "version": "1.3.3",
+  "build": 37,
+  "scope": "HIG workspace layout, touch targets, keyboard access and dark appearance",
+  "guidelines": [
+    "https://developer.apple.com/design/human-interface-guidelines/layout",
+    "https://developer.apple.com/design/human-interface-guidelines/toolbars",
+    "https://developer.apple.com/design/human-interface-guidelines/accessibility"
+  ],
+  "changes": [
+    "Separate top engineering actions from bottom drawing tools",
+    "Use 44-point drawing targets on compact and touch layouts",
+    "Dismiss compact component library after choosing a device",
+    "Render light circuit ink directly for dark canvas without changing image export",
+    "Expose tool selection, library disclosure, tab keyboard navigation and visible focus",
+    "Support increased contrast, reduced transparency and reduced motion preferences"
+  ],
+  "verification": {
+    "editorTestsPassed": 30,
+    "nativeIntegrationChecksPassed": 40,
+    "layoutWidths": [
+      320,
+      393,
+      600,
+      768,
+      1440
+    ],
+    "iPhoneSimulator": "iPhone 18 Pro / iOS 27.0",
+    "iPhoneDrawerOrientations": [
+      "landscape",
+      "portrait"
+    ],
+    "iPadSimulator": "iPad Pro 13-inch M5 / iPadOS 27.0",
+    "iPadOrientationNote": "Automatic geometry requests sometimes remained in the current orientation; portrait and landscape were verified across separate runs and manual Device Hub rotation.",
+    "simulatorBuild": "passed",
+    "macOSArchiveLaunch": "passed",
+    "physicalDeviceTest": false,
+    "evidenceDirectory": "/Volumes/CircuitStudioBuild36/QA",
+    "darkLandscapeScreenshot": "/Volumes/CircuitStudioBuild36/QA/ipad-dark-landscape.png",
+    "archives": {
+      "macOS": {
+        "version": "1.3.3",
+        "build": "37",
+        "matchingResourceFiles": 108,
+        "signed": true
+      },
+      "iOS": {
+        "version": "1.3.3",
+        "build": "37",
+        "matchingResourceFiles": 108,
+        "signed": true
+      }
+    },
+    "uiVerificationBuild": "1.3.2 (36); identical UI source, followed by version/build metadata update only"
+  },
+  "delivery": {
+    "destination": "TestFlight",
+    "platforms": [
+      "macOS",
+      "iOS"
+    ],
+    "uploadStatus": "both platforms uploaded successfully",
+    "processedBuildStatus": "Apple reported processing at upload completion; final TestFlight installability not verified",
+    "appStoreReviewSubmitted": false,
+    "previousAttempt": {
+      "version": "1.3.2",
+      "build": 36,
+      "macOS": "uploaded and processing",
+      "iOS": "rejected: pre-release train closed; higher marketing version required",
+      "evidenceDirectory": "/Volumes/CircuitStudioBuild36/QA/attempt-1.3.2-build36"
+    },
+    "testflightInstallabilityVerified": false,
+    "uploadEvidence": {
+      "macOS": {
+        "path": "/Volumes/CircuitStudioBuild36/QA/delivery-1.3.3-build37/macOS-distribution.log",
+        "sha256": "6cc37541f63b1cd3fb266ffa71a59e40e37d61481d752e1b1c149b9d181f6247",
+        "appleResponse": "Upload succeeded; uploaded package is processing"
+      },
+      "iOS": {
+        "path": "/Volumes/CircuitStudioBuild36/QA/delivery-1.3.3-build37/iOS-distribution.log",
+        "sha256": "01bc5687cd7bd9ba1d164a1f2bd1e8deecc1274c78f1ad72d800fc2c75016932",
+        "appleResponse": "Upload succeeded; uploaded package is processing"
+      }
+    },
+    "archiveStatus": {
+      "macOS": {
+        "platform": "macOS",
+        "archive": "/Volumes/CircuitStudioBuild36/Distribution/Archives/macOS.xcarchive",
+        "bundleID": "com.circuitstudio.app",
+        "version": "1.3.3",
+        "build": "37",
+        "signed": true,
+        "exported": false,
+        "uploaded": true,
+        "privacyManifestPresent": true,
+        "thirdPartyLicensePresent": true
+      },
+      "iOS": {
+        "platform": "iOS",
+        "archive": "/Volumes/CircuitStudioBuild36/Distribution/Archives/iOS.xcarchive",
+        "bundleID": "com.circuitstudio.app",
+        "version": "1.3.3",
+        "build": "37",
+        "signed": true,
+        "exported": false,
+        "uploaded": true,
+        "privacyManifestPresent": true,
+        "thirdPartyLicensePresent": true
+      }
+    }
+  }
+}

@@ -12,7 +12,7 @@ rejected. The source project itself is never modified by a run.
 
 Circuit Studio supplies its own chrome: the existing teal accent, a bottom
 floating tool dock, inset document tabs, compact collapsible library sections and
-native glass simulation/AI controls. Separately licensed dependency notices remain bundled.
+native glass simulation/AI controls above the canvas. Compact layouts start with the library collapsed, use 44-point drawing targets, and dismiss the library after choosing a component. The live canvas uses a separate dark appearance while exported artwork retains its selected output style. Separately licensed dependency notices remain bundled.
 
 The right floating, collapsible native drawer switches between Simulation and
 CircuitAI. Opening it fits the circuit into the unobscured canvas. Simulation

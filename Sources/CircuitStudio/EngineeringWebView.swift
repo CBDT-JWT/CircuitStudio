@@ -190,17 +190,23 @@ final class EngineeringAssetServer: @unchecked Sendable {
 struct EngineeringFocusKey:FocusedValueKey { typealias Value=EngineeringWorkspace }
 extension FocusedValues { var engineeringEditor:EngineeringWorkspace? { get { self[EngineeringFocusKey.self] } set { self[EngineeringFocusKey.self]=newValue } } }
 struct EngineeringWorkspaceView:View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var workspace=EngineeringWorkspace()
     init(workspace:EngineeringWorkspace? = nil) { _workspace=State(initialValue:workspace ?? EngineeringWorkspace()) }
     var body:some View {
         VStack(spacing:0) {
             if let url=workspace.url {
                 GeometryReader { geometry in
-                 let compact=geometry.size.width<600
+                 let compact=geometry.size.width<=600
                  let drawerWidth=compact ? max(0,geometry.size.width-24):min(420,max(340,geometry.size.width*0.30))
-                 let drawerHeight=compact ? min(500,max(300,geometry.size.height*0.55)):max(300,geometry.size.height-48)
+                 let drawerHeight=compact ? min(500,max(180,geometry.size.height*0.62)):max(180,geometry.size.height-32)
+                 #if os(iOS)
+                 let actionSize:CGFloat=44
+                 #else
+                 let actionSize:CGFloat=36
+                 #endif
                  ZStack(alignment:compact ? .bottom:.trailing) {
-                  ZStack(alignment:.bottomTrailing) {
+                  ZStack(alignment:.topTrailing) {
                     EngineeringBrowser(workspace:workspace,url:url)
                     if !workspace.showDrawer { HStack(spacing:6) {
                         Menu {
@@ -209,7 +215,7 @@ struct EngineeringWorkspaceView:View {
                             Button("RC 滤波器") { workspace.loadExample("rc") }
                             Button("共源放大器") { workspace.loadExample("common") }
                             Button("差分放大器") { workspace.loadExample("diff") }
-                        } label: { Image(systemName:"square.stack").frame(width:36,height:36) }.menuStyle(.borderlessButton).fixedSize().help("电路模板").accessibilityLabel("电路模板")
+                        } label: { Image(systemName:"square.stack").frame(width:actionSize,height:actionSize) }.menuStyle(.borderlessButton).fixedSize().help("电路模板").accessibilityLabel("电路模板")
                         Menu {
                             Section("Virtuoso 风格") {
                                 Button("导出 PNG…"){workspace.exportImage("png",style:"virtuoso")}
@@ -220,23 +226,23 @@ struct EngineeringWorkspaceView:View {
                                 Button("导出 PNG…"){workspace.exportImage("png",style:"current")}
                                 Button("导出 SVG…"){workspace.exportImage("svg",style:"current")}
                             }
-                        } label:{Image(systemName:"square.and.arrow.up").frame(width:36,height:36)}.menuStyle(.borderlessButton).fixedSize().help("导出电路图").accessibilityLabel("导出电路图")
-                        Button { workspace.simulate() } label: { Image(systemName:"waveform.path").frame(width:36,height:36) }.help("Run simulation").accessibilityLabel("Run simulation")
-                        Button { workspace.explain() } label: { Label("CircuitAI",systemImage:"sparkles").font(.system(size:12,weight:.medium)).padding(.horizontal,10).frame(height:36) }.help("AI 电路解读").accessibilityLabel("CircuitAI 对话")
-                    }.buttonStyle(.plain).padding(7).glassEffect(.regular.interactive(),in:Capsule()).padding(.trailing,16).padding(.bottom,30) }
+                        } label:{Image(systemName:"square.and.arrow.up").frame(width:actionSize,height:actionSize)}.menuStyle(.borderlessButton).fixedSize().help("导出电路图").accessibilityLabel("导出电路图")
+                        Button { workspace.simulate() } label: { Image(systemName:"waveform.path").frame(width:actionSize,height:actionSize) }.help("仿真设置").accessibilityLabel("仿真设置")
+                        Button { workspace.explain() } label: { Label("CircuitAI",systemImage:"sparkles").font(.callout.weight(.medium)).padding(.horizontal,10).frame(minHeight:actionSize) }.help("AI 电路解读").accessibilityLabel("CircuitAI 对话")
+                    }.buttonStyle(.plain).tint(.primary).padding(7).glassEffect(.regular.interactive(),in:Capsule()).padding(.trailing,compact ? 12:16).padding(.top,60).accessibilityElement(children:.contain).accessibilityLabel("工程操作") }
                   }.frame(minWidth:0).accessibilityIdentifier("engineering-canvas-region")
                     if workspace.showDrawer {
                         VStack(spacing:0) {
                             HStack(spacing:12) {
                                 Picker("工具抽屉",selection:$workspace.drawerTab) {ForEach(EngineeringWorkspace.DrawerTab.allCases,id:\.self){Text($0.rawValue).tag($0)}}.pickerStyle(.segmented)
-                                Button {withAnimation(.snappy){workspace.showDrawer=false}} label:{Image(systemName:"xmark").frame(width:24,height:24)}.buttonStyle(.plain).accessibilityLabel("收起工具抽屉")
+                                Button {withAnimation(reduceMotion ? nil:.snappy){workspace.showDrawer=false}} label:{Image(systemName:"xmark").frame(width:44,height:44).contentShape(Circle())}.buttonStyle(.plain).accessibilityLabel("收起工具抽屉")
                             }.padding(14)
                             Divider()
                             if workspace.drawerTab == .assistant {
                                 EngineeringChatDrawer(chat:workspace.chat,close:{workspace.showDrawer=false},snapshot:{try await workspace.assistantSnapshot()},execute:{try await workspace.agentTool($0,arguments:$1,stamp:$2)},figureChanged:{workspace.updateFigure($0)},showsClose:false)
                             } else {EngineeringSimulationDrawer(workspace:workspace)}
                         }.frame(width:drawerWidth,height:drawerHeight).background(.regularMaterial,in:RoundedRectangle(cornerRadius:20)).clipShape(RoundedRectangle(cornerRadius:20)).shadow(color:.black.opacity(0.10),radius:24,y:8).padding(.trailing,compact ? 0:16).padding(.bottom,compact ? 16:0).accessibilityIdentifier("engineering-tools-drawer")
-                            .transition(.move(edge:compact ? .bottom:.trailing).combined(with:.opacity))
+                            .transition(reduceMotion ? .opacity:.move(edge:compact ? .bottom:.trailing).combined(with:.opacity))
                     }
                  }.onChange(of:workspace.showDrawer,initial:true) {_,open in workspace.updateDrawerInset(open && !compact ? drawerWidth+32:0,bottom:open && compact ? drawerHeight+32:0)}
                   .onChange(of:geometry.size){_,_ in if workspace.showDrawer{workspace.updateDrawerInset(compact ? 0:drawerWidth+32,bottom:compact ? drawerHeight+32:0)}}
@@ -264,7 +270,6 @@ struct EngineeringWorkspaceView:View {
         .alert("Circuit Studio",isPresented:Binding(get:{workspace.error != nil && workspace.url != nil},set:{if !$0{workspace.error=nil}})){Button("好"){workspace.error=nil}}message:{Text(workspace.error ?? "")}
         .sheet(isPresented:$workspace.showCourseExamples) {CircuitCourseExamples(workspace:workspace)}
         .sheet(item:$workspace.simulationOutput) { EngineeringSimulationView(output:$0) }
-        .alert("Engineering workspace",isPresented:Binding(get:{workspace.error != nil && workspace.url != nil},set:{ if !$0 { workspace.error=nil } })) { Button("OK") { workspace.error=nil } } message: { Text(workspace.error ?? "") }
     }
 }
 #if os(macOS)

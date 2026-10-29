@@ -52,7 +52,7 @@ extension EngineeringWorkspace {
                     let layout=try await webView.callAsyncJavaScript("""
                         const {controller:c}=await import('./editor.mjs');c.fit();
                         const {boundsFor}=await import('./model.mjs'),b=boundsFor(c.cell()),a=c.screen(b),z=c.screen({x:b.x+b.width,y:b.y+b.height});
-                        const expectedBottom=innerWidth<600?Math.min(500,Math.max(300,innerHeight*.55))+32:0;
+                        const expectedBottom=innerWidth<=600?Math.min(500,Math.max(180,innerHeight*.62))+32:0;
                         return {width:innerWidth,height:innerHeight,inset:c.app.drawer,bottomInset:c.app.drawerBottom,expectedBottom,visible:a.x>=0&&z.x<=innerWidth-c.app.drawer+8&&a.y>=0&&z.y<=innerHeight-c.app.drawerBottom+8&&Math.abs(c.app.drawerBottom-expectedBottom)<2};
                     """,arguments:[:],in:nil,contentWorld:.page) as! [String:Any]
                     guard layout["visible"] as? Bool==true else{throw CircuitError.message("iPad drawer obscured the circuit: "+name)}
