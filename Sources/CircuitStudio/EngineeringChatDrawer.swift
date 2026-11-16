@@ -15,6 +15,7 @@ struct EngineeringChatDrawer:View {
     @State private var purchase=false
     @State private var redeem=false
     #if os(macOS)
+    @AppStorage("circuit-ai-installed-codex-consent") private var codexConsent = false
     @State private var codexCode = ""
     @State private var codexConnection: Task<Void, Never>?
     #endif
@@ -37,9 +38,9 @@ struct EngineeringChatDrawer:View {
                         if chat.usesCodex { Label("本机 Codex", systemImage: "checkmark") }
                         else { Text("本机 Codex") }
                     }
-                    if chat.usesCodex, chat.codexToken != nil {
+                    if chat.usesCodex, chat.codexConnected {
                         Divider()
-                        Button("断开 Codex", action: chat.disconnectCodex)
+                        Button("断开 Codex") { chat.disconnectCodex(); codexConsent = false }
                     }
                 } label: {
                     Label(chat.usesCodex ? "本机 Codex" : "云端", systemImage: chat.usesCodex ? "terminal" : "cloud")
@@ -89,29 +90,27 @@ struct EngineeringChatDrawer:View {
     }
     @ViewBuilder private var localProvider: some View {
         #if os(macOS)
-        if chat.codexToken != nil {
+        if chat.codexConnected {
             conversation
         } else {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
                     Image(systemName: "terminal").font(.title2).foregroundStyle(StudioStyle.accent)
                     Text("连接本机 Codex").font(.title3.weight(.semibold))
-                    Text("将启动命令粘贴到终端运行，保持终端开启，然后粘贴显示的连接码。需使用已登录的 Codex CLI。")
-                        .font(.callout).foregroundStyle(.secondary)
-                    Button {
-                        NSPasteboard.general.clearContents()
-                        NSPasteboard.general.setString(LocalCodex.setupCommand, forType: .string)
-                    } label: { Label("复制启动命令", systemImage: "doc.on.doc") }
-                    SecureField("终端中的连接码", text: $codexCode).textFieldStyle(.roundedBorder)
-                        .onSubmit(connectCodex)
+                    if LocalCodex.hasInstalledBridge {
+                        Text("使用这台 Mac 上已安装并登录的 Codex。")
+                            .font(.callout).foregroundStyle(.secondary)
+                    } else {
+                        manualPairing
+                    }
                     Text("发送时，当前电路、对话及附图会交给本机 Codex，并由其配置的模型服务处理。")
                         .font(.caption).foregroundStyle(.secondary)
-                    Button("同意并连接", action: connectCodex)
+                    Button(codexConsent && LocalCodex.hasInstalledBridge ? "重新连接" : "同意并连接", action: connectCodex)
                         .buttonStyle(.borderedProminent)
-                        .disabled(codexConnection != nil || !LocalCodex.validToken(trimmedCodexCode))
-                    if codexConnection != nil { ProgressView("正在验证连接…").controlSize(.small) }
+                        .disabled(codexConnection != nil || (!LocalCodex.hasInstalledBridge && !LocalCodex.validToken(trimmedCodexCode)))
+                    if codexConnection != nil { ProgressView("正在连接本机 Codex…").controlSize(.small) }
                     if let error = chat.error { Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
-                    Link("Codex CLI 安装说明", destination: URL(string: "https://developers.openai.com/codex/cli")!)
+                    Link("Codex 安装说明", destination: URL(string: "https://developers.openai.com/codex/cli")!)
                         .font(.caption)
                 }.padding(22).frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -122,6 +121,17 @@ struct EngineeringChatDrawer:View {
     }
 
     #if os(macOS)
+    @ViewBuilder private var manualPairing: some View {
+        Text("将启动命令粘贴到终端运行，保持终端开启，然后粘贴显示的连接码。需使用已登录的 Codex CLI。")
+            .font(.callout).foregroundStyle(.secondary)
+        Button {
+            NSPasteboard.general.clearContents()
+            NSPasteboard.general.setString(LocalCodex.setupCommand, forType: .string)
+        } label: { Label("复制启动命令", systemImage: "doc.on.doc") }
+        SecureField("终端中的连接码", text: $codexCode).textFieldStyle(.roundedBorder)
+            .onSubmit(connectCodex)
+    }
+
     private var trimmedCodexCode: String { codexCode.trimmingCharacters(in: .whitespacesAndNewlines) }
 
     private func selectCodex(_ enabled: Bool) {
@@ -131,15 +141,25 @@ struct EngineeringChatDrawer:View {
             codexCode = ""
         }
         chat.selectCodex(enabled)
+        if enabled, LocalCodex.hasInstalledBridge, codexConsent, !chat.codexConnected {
+            connectCodex()
+        }
     }
 
     private func connectCodex() {
-        let token = trimmedCodexCode
-        guard codexConnection == nil, LocalCodex.validToken(token) else { return }
+        guard codexConnection == nil else { return }
+        let connection: LocalCodex.Connection
+        if LocalCodex.hasInstalledBridge {
+            codexConsent = true
+            connection = .installed
+        } else {
+            guard LocalCodex.validToken(trimmedCodexCode) else { return }
+            connection = .paired(trimmedCodexCode)
+        }
         chat.error = nil
         codexConnection = Task {
             do {
-                try await chat.connectCodex(token: token)
+                try await chat.connectCodex(connection)
                 codexCode = ""
             } catch {
                 if !Task.isCancelled { chat.error = error.localizedDescription }

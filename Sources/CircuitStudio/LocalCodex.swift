@@ -1,9 +1,18 @@
 #if os(macOS)
 import Foundation
 
-/// Uses the Codex App Server already running on this Mac.
+/// Sends JSON-RPC to the installed Codex App Server.
 enum LocalCodex {
-    private static let endpoint = URL(string: "ws://127.0.0.1:52419")!
+    enum Connection: Sendable {
+        case installed
+        case paired(String)
+    }
+
+    static var hasInstalledBridge: Bool {
+        let bridge = Bundle.main.bundleURL
+            .appendingPathComponent("Contents/XPCServices/CodexBridge.xpc", isDirectory: true)
+        return FileManager.default.fileExists(atPath: bridge.path)
+    }
     static let setupCommand = #"""
     (
       set -e
@@ -36,8 +45,8 @@ enum LocalCodex {
         token.utf8.count == 64 && token.utf8.allSatisfy { (48...57).contains($0) || (97...102).contains($0) }
     }
 
-    static func check(token: String) async throws {
-        try await connect(token: token, timeout: 8) { socket in
+    static func check(_ connection: Connection) async throws {
+        try await connect(connection, timeout: 8) { socket in
             let account = try await socket.request("account/read", ["refreshToken": false])
             guard account["account"] is [String: Any] else {
                 throw CircuitError.message("本机 Codex 尚未登录。请在终端运行 codex login 后重新连接。")
@@ -45,7 +54,7 @@ enum LocalCodex {
         }
     }
 
-    static func respond(context: String, messages: [CircuitAIMessage], token: String) async throws -> CircuitAIMessage {
+    static func respond(context: String, messages: [CircuitAIMessage], connection: Connection) async throws -> CircuitAIMessage {
         guard let resource = Bundle.main.url(forResource: "codex-tools", withExtension: "json", subdirectory: "EngineeringEditor"),
               let contract = try JSONSerialization.jsonObject(with: Data(contentsOf: resource)) as? [String: Any],
               let instructions = contract["instructions"] as? String,
@@ -54,7 +63,7 @@ enum LocalCodex {
         }
         let toolNames = tools.compactMap { $0["name"] as? String }
         let input = try turnInput(context: context, messages: messages, tools: tools)
-        let answer = try await connect(token: token, timeout: 180) { socket in
+        let answer = try await connect(connection, timeout: 180) { socket in
             let config = try await socket.request("config/read", ["includeLayers": false])
             guard let settings = config["config"] as? [String: Any] else {
                 throw CircuitError.message("无法读取本机 Codex 的连接设置。")
@@ -124,32 +133,28 @@ enum LocalCodex {
     }
 
     private static func connect<T>(
-        token: String, timeout: TimeInterval, operation: (Socket) async throws -> T
+        _ connection: Connection, timeout: TimeInterval, operation: (Socket) async throws -> T
     ) async throws -> T {
-        guard validToken(token) else { throw CircuitError.message("请输入终端里显示的 64 位连接码。") }
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.timeoutIntervalForRequest = timeout
-        configuration.timeoutIntervalForResource = timeout
-        configuration.httpShouldSetCookies = false
-        configuration.connectionProxyDictionary = [:]
-        let session = URLSession(configuration: configuration, delegate: NoRedirects(), delegateQueue: nil)
-        var request = URLRequest(url: endpoint)
-        request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
-        let task = session.webSocketTask(with: request)
-        task.maximumMessageSize = 1_000_000
-        task.resume()
-        defer { session.invalidateAndCancel() }
-        // URLSession's request timeout is not a deadline for an upgraded socket.
+        let transport: any CodexTransport
+        switch connection {
+        case .installed:
+            transport = CodexXPCTransport()
+        case .paired(let token):
+            guard validToken(token) else { throw CircuitError.message("请输入终端里显示的 64 位连接码。") }
+            transport = CodexWebSocket(token: token, timeout: timeout)
+        }
+        defer { transport.cancel() }
+        // Limit the lifetime of a request even when the server stops sending events.
         let deadline = Task {
             do { try await Task.sleep(for: .seconds(timeout)) } catch { return }
-            task.cancel(with: .goingAway, reason: nil)
+            transport.cancel()
         }
         defer { deadline.cancel() }
         return try await withTaskCancellationHandler {
             do {
-                let socket = Socket(task: task)
+                let socket = Socket(transport: transport)
                 _ = try await socket.request("initialize", ["clientInfo": [
-                    "name": "circuit_studio", "title": "Circuit Studio", "version": "1.3.8"
+                    "name": "circuit_studio", "title": "Circuit Studio", "version": Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.3.9"
                 ]])
                 try await socket.send(["method": "initialized"])
                 return try await operation(socket)
@@ -157,41 +162,34 @@ enum LocalCodex {
                 throw error
             } catch {
                 try Task.checkCancellation()
-                throw CircuitError.message("连接本机 Codex 失败。请确认终端仍在运行、连接码有效，且 Codex CLI 已更新。")
+                switch connection {
+                case .installed:
+                    throw CircuitError.message("连接本机 Codex 失败。请确认 Codex 已更新并登录，再试一次。")
+                case .paired:
+                    throw CircuitError.message("连接本机 Codex 失败。请确认终端仍在运行、连接码有效，且 Codex CLI 已更新。")
+                }
             }
         } onCancel: {
-            task.cancel(with: .goingAway, reason: nil)
-        }
-    }
-
-    private final class NoRedirects: NSObject, URLSessionTaskDelegate, Sendable {
-        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
-                        newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
-            completionHandler(nil)
+            transport.cancel()
         }
     }
 
     private final class Socket {
-        let task: URLSessionWebSocketTask
+        let transport: any CodexTransport
         private var nextID = 0
         private var turnEvents: [[String: Any]] = []
 
-        init(task: URLSessionWebSocketTask) { self.task = task }
+        init(transport: any CodexTransport) { self.transport = transport }
 
         func send(_ value: [String: Any]) async throws {
             let data = try JSONSerialization.data(withJSONObject: value)
-            try await task.send(.string(String(decoding: data, as: UTF8.self)))
+            try await transport.send(data)
         }
 
         private func receive() async throws -> [String: Any] {
             try Task.checkCancellation()
             while true {
-                let data: Data
-                switch try await task.receive() {
-                case .string(let text): data = Data(text.utf8)
-                case .data(let bytes): data = bytes
-                @unknown default: throw CircuitError.message("Codex 返回了未知的消息类型。")
-                }
+                let data = try await transport.receive()
                 guard let event = try JSONSerialization.jsonObject(with: data) as? [String: Any] else { continue }
                 // Server-initiated approvals and tool requests are outside this client contract.
                 if event["method"] is String, let id = event["id"] {
@@ -257,5 +255,93 @@ enum LocalCodex {
             }
         }
     }
+}
+
+
+private protocol CodexTransport: Sendable {
+    func send(_ message: Data) async throws
+    func receive() async throws -> Data
+    func cancel()
+}
+
+private final class CodexXPCTransport: CodexTransport, @unchecked Sendable {
+    private let connection: NSXPCConnection
+
+    init() {
+        connection = NSXPCConnection(serviceName: LocalCodexIPCService.name)
+        connection.remoteObjectInterface = NSXPCInterface(with: LocalCodexIPC.self)
+        connection.resume()
+    }
+
+    func send(_ message: Data) async throws {
+        try await withCheckedThrowingContinuation { (completion: CheckedContinuation<Void, Error>) in
+            let proxy = connection.remoteObjectProxyWithErrorHandler { completion.resume(throwing: $0) }
+            guard let service = proxy as? LocalCodexIPC else {
+                completion.resume(throwing: CircuitError.message("无法连接 Circuit Studio 的 Codex 服务。"))
+                return
+            }
+            service.send(message) { error in
+                if let error { completion.resume(throwing: CircuitError.message(error)) }
+                else { completion.resume() }
+            }
+        }
+    }
+
+    func receive() async throws -> Data {
+        try await withCheckedThrowingContinuation { completion in
+            let proxy = connection.remoteObjectProxyWithErrorHandler { completion.resume(throwing: $0) }
+            guard let service = proxy as? LocalCodexIPC else {
+                completion.resume(throwing: CircuitError.message("无法连接 Circuit Studio 的 Codex 服务。"))
+                return
+            }
+            service.receive { message, error in
+                if let message { completion.resume(returning: message) }
+                else { completion.resume(throwing: CircuitError.message(error ?? "本机 Codex 已断开。")) }
+            }
+        }
+    }
+
+    func cancel() { connection.invalidate() }
+}
+
+private final class CodexWebSocket: CodexTransport {
+    private let session: URLSession
+    private let task: URLSessionWebSocketTask
+
+    init(token: String, timeout: TimeInterval) {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.timeoutIntervalForRequest = timeout
+        configuration.timeoutIntervalForResource = timeout
+        configuration.httpShouldSetCookies = false
+        configuration.connectionProxyDictionary = [:]
+        session = URLSession(configuration: configuration, delegate: NoRedirects(), delegateQueue: nil)
+        var request = URLRequest(url: URL(string: "ws://127.0.0.1:52419")!)
+        request.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
+        task = session.webSocketTask(with: request)
+        task.maximumMessageSize = 1_000_000
+        task.resume()
+    }
+
+    func send(_ message: Data) async throws {
+        try await task.send(.string(String(decoding: message, as: UTF8.self)))
+    }
+
+    func receive() async throws -> Data {
+        switch try await task.receive() {
+        case .string(let text): return Data(text.utf8)
+        case .data(let data): return data
+        @unknown default: throw CircuitError.message("Codex 返回了未知的消息类型。")
+        }
+    }
+
+    func cancel() { session.invalidateAndCancel() }
+
+    private final class NoRedirects: NSObject, URLSessionTaskDelegate, Sendable {
+        func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse,
+                        newRequest request: URLRequest, completionHandler: @escaping @Sendable (URLRequest?) -> Void) {
+            completionHandler(nil)
+        }
+    }
+
 }
 #endif

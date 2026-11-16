@@ -15,6 +15,32 @@ ROOT = Path(__file__).resolve().parents[1]
 def run(command, **kwargs):
     subprocess.run(list(map(str, command)), check=True, **kwargs)
 
+def embed_codex_bridge(app, staging, signing):
+    helper = app / 'Contents/XPCServices/CodexBridge.xpc'
+    contents = helper / 'Contents'
+    binary = contents / 'MacOS/CodexBridge'
+    binary.parent.mkdir(parents=True, exist_ok=True)
+    source = ROOT / 'Helpers/CodexBridge/main.swift'
+    protocol = ROOT / 'Sources/CircuitStudio/LocalCodexIPC.swift'
+    slices = []
+    for architecture in ['arm64', 'x86_64']:
+        thin = staging / ('CodexBridge-' + architecture)
+        run(['xcrun', 'swiftc', '-O', '-swift-version', '6', '-target', architecture + '-apple-macos26.0',
+             '-module-cache-path', staging / 'codex-module-cache', source, protocol, '-o', thin])
+        slices.append(thin)
+    run(['lipo', '-create', *slices, '-output', binary])
+    (contents / 'Info.plist').write_bytes(plistlib.dumps({
+        'CFBundleIdentifier': 'com.circuitstudio.app.CodexBridge',
+        'CFBundleExecutable': 'CodexBridge',
+        'CFBundleName': 'Circuit Studio Codex Bridge',
+        'CFBundlePackageType': 'XPC!',
+        'CFBundleShortVersionString': '1.0',
+        'CFBundleVersion': '1',
+        'XPCService': {'ServiceType': 'Application'},
+    }))
+    run(signing + [helper])
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--version', default='1.2.0')
@@ -75,6 +101,7 @@ def main():
             extra = ['--preserve-metadata=entitlements'] if helper.endswith('Downloader.xpc') else []
             run(common_signing + extra + [framework / 'Versions/B' / helper])
         run(common_signing + [framework])
+        embed_codex_bridge(app, staging, common_signing)
         info = plistlib.loads((app / 'Contents/Info.plist').read_bytes())
         entitlements = staging / 'direct.entitlements'
         entitlements.write_text((ROOT / 'Resources/CircuitStudio.Direct.entitlements').read_text().replace('$(PRODUCT_BUNDLE_IDENTIFIER)', info['CFBundleIdentifier']))

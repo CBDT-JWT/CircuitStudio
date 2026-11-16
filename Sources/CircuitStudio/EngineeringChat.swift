@@ -22,20 +22,21 @@ struct CircuitAIToolResult { var content:String;var image:String?;var stamp:Circ
     init(response:@escaping @MainActor (String,[CircuitAIMessage],CircuitAIConfiguration) async throws -> CircuitAIMessage = { try await CircuitAIService.agent(context:$0,messages:$1,configuration:$2) },access:(@MainActor () throws -> CircuitAIConfiguration)?=nil) { self.response=response;self.access=access }
     #if os(macOS)
     private(set) var usesCodex = false
-    private(set) var codexToken: String?
+    private var codexConnection: LocalCodex.Connection?
+    var codexConnected: Bool { codexConnection != nil }
     func selectCodex(_ enabled: Bool) {
         guard !sending else { return }
         usesCodex = enabled
         error = nil
     }
-    func connectCodex(token: String) async throws {
-        try await LocalCodex.check(token: token)
+    func connectCodex(_ connection: LocalCodex.Connection) async throws {
+        try await LocalCodex.check(connection)
         try Task.checkCancellation()
-        codexToken = token
+        codexConnection = connection
     }
     func disconnectCodex() {
         guard !sending else { return }
-        codexToken = nil
+        codexConnection = nil
         error = nil
     }
     #else
@@ -80,8 +81,8 @@ struct CircuitAIToolResult { var content:String;var image:String?;var stamp:Circ
                 guard requestedProject.isEmpty || requestedProject==projectID else {throw CircuitError.message("已切换工程，请回到原工程发送。")}
                 var stamp=try CircuitAIStamp.context(context)
                 #if os(macOS)
-                let localToken = usesCodex ? codexToken : nil
-                if usesCodex && localToken == nil { throw CircuitError.message("请先连接本机 Codex。") }
+                let localConnection = usesCodex ? codexConnection : nil
+                if usesCodex && localConnection == nil { throw CircuitError.message("请先连接本机 Codex。") }
                 #endif
                 let configuration = try usesCodex ? nil : (access?() ?? subscription.configuration())
                 let attached=threads[threadID]?.attachments ?? []
@@ -116,8 +117,8 @@ struct CircuitAIToolResult { var content:String;var image:String?;var stamp:Circ
                         response = try await self.response(context, history, configuration)
                     } else {
                         #if os(macOS)
-                        guard let localToken else { throw CircuitError.message("请先连接本机 Codex。") }
-                        response = try await LocalCodex.respond(context: context, messages: history, token: localToken)
+                        guard let localConnection else { throw CircuitError.message("请先连接本机 Codex。") }
+                        response = try await LocalCodex.respond(context: context, messages: history, connection: localConnection)
                         #else
                         throw CircuitError.message("本机 Codex 仅在 Mac 上可用。")
                         #endif
