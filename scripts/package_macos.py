@@ -19,6 +19,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--version', default='1.2.0')
     parser.add_argument('--build', default='5')
+    parser.add_argument('--work-dir', type=Path, help='Build/cache storage, preferably an external APFS volume')
     parser.add_argument('--skip-build', action='store_true')
     parser.add_argument('--sign-identity', default='auto', help='Existing Developer ID or Apple Development identity; auto prefers Developer ID')
     parser.add_argument('--notary-profile', help='Existing notarytool Keychain profile; requires a Developer ID signature')
@@ -42,12 +43,13 @@ def main():
         parser.error('Use an Apple signing identity for the Sparkle-enabled direct build.')
     if args.notary_profile and 'Developer ID' not in signing_name:
         parser.error('Apple notarization requires a Developer ID Application signing identity.')
-    output = ROOT / 'Release/Direct'; output.mkdir(parents=True, exist_ok=True)
+    work = (args.work_dir or ROOT / 'build-direct-work').resolve(); work.mkdir(parents=True,exist_ok=True)
+    output = work / 'Output' if args.work_dir else ROOT / 'Release/Direct'; output.mkdir(parents=True, exist_ok=True)
     if not args.skip_build:
         log = output / 'build.log'
         print('Building arm64 + x86_64; log:', log, flush=True)
         # iCloud-managed source directories can suspend Xcode's coordinated reads.
-        with tempfile.TemporaryDirectory(prefix='circuitstudio-build-source-') as checkout:
+        with tempfile.TemporaryDirectory(prefix='circuitstudio-build-source-',dir=work) as checkout:
             checkout = Path(checkout)
             for name in ['Sources', 'Resources', 'Vendor', 'CircuitStudio.xcodeproj']:
                 source_tree = ROOT / name
@@ -60,10 +62,10 @@ def main():
             shutil.copy2(ROOT / 'LICENSE', checkout / 'LICENSE')
             with log.open('w') as stream:
                 run(['xcodebuild', '-project', checkout / 'CircuitStudio.xcodeproj', '-scheme', 'CircuitStudio', '-configuration', 'Release',
-                 '-destination', 'generic/platform=macOS', '-derivedDataPath', ROOT / 'build-direct', 'ARCHS=arm64 x86_64',
+                 '-destination', 'generic/platform=macOS', '-derivedDataPath', work / 'DerivedData', 'ARCHS=arm64 x86_64',
                  'ONLY_ACTIVE_ARCH=NO', 'CODE_SIGNING_ALLOWED=NO', 'MARKETING_VERSION=' + args.version, 'CURRENT_PROJECT_VERSION=' + args.build, 'build'], stdout=stream, stderr=subprocess.STDOUT)
-    source = ROOT / 'build-direct/Build/Products/Release/CircuitStudio.app'
-    with tempfile.TemporaryDirectory(prefix='circuitstudio-distribution-') as temporary:
+    source = work / 'DerivedData/Build/Products/Release/CircuitStudio.app'
+    with tempfile.TemporaryDirectory(prefix='circuitstudio-distribution-',dir=work) as temporary:
         staging = Path(temporary)
         app = staging / 'Circuit Studio.app'
         run(['ditto', '--norsrc', source, app])
@@ -86,26 +88,28 @@ def main():
         run(['swift', ROOT / 'scripts/make_dmg_background.swift', background])
         readme = staging / 'Read Me.txt'
         readme.write_text('Circuit Studio ' + args.version + '\n\nDrag Circuit Studio.app into Applications.\nRequires macOS 26 or later. Supports Apple Silicon and Intel.\n\n' +
-            ('This build is not notarized by Apple. After attempting to open it, use System Settings > Privacy & Security > Open Anyway if macOS blocks the app.\nhttps://support.apple.com/102445\n\n' if not args.notary_profile else '') +
-            'Schematic: circuit drawing with offline ngspice simulation.\nIllustration: block diagrams, ports and paper figures, without simulation.\n\nSource: https://github.com/CBDT-JWT/CircuitStudio\nApp source: MIT. ngspice keeps its own license, included in the app.\n', encoding='utf-8')
+            ('This build is signed but is not notarized by Apple. macOS Gatekeeper may prevent it from opening.\n\n' if not args.notary_profile else '') +
+            'Schematic: circuit drawing with offline ngspice simulation.\nIllustration: block diagrams, ports and paper figures, without simulation.\n\nSource: https://github.com/CBDT-JWT/CircuitStudio\nApp source: MIT. Bundled vector artwork, ngspice, fonts and other dependencies retain their separate licenses, included in the app.\n', encoding='utf-8')
         dmg = staging / ('CircuitStudio-' + args.version + '-universal.dmg')
         dmgbuild.build_dmg(str(dmg), 'Circuit Studio', settings={
             'files': [str(app), str(readme)], 'symlinks': {'Applications': '/Applications'},
             'icon_locations': {'Circuit Studio.app': (170, 200), 'Applications': (470, 200), 'Read Me.txt': (560, 345)},
             'window_rect': ((160, 160), (640, 400)), 'icon_size': 90, 'text_size': 13,
-            'background': str(background), 'format': 'UDZO', 'filesystem': 'APFS', 'compression_level': 9,
+            'background': str(background), 'format': 'UDZO', 'filesystem': 'HFS+', 'compression_level': 9,
             'default_view': 'icon-view', 'show_toolbar': False, 'show_sidebar': False,
             'show_status_bar': False, 'show_pathbar': False,
         })
+        run(common_signing + [dmg])
         if args.notary_profile:
             run(['xcrun', 'notarytool', 'submit', dmg, '--keychain-profile', args.notary_profile, '--wait'])
             run(['xcrun', 'stapler', 'staple', dmg])
             run(['xcrun', 'stapler', 'validate', dmg])
+        run(['codesign','--verify','--strict',dmg])
         run(['hdiutil', 'verify', dmg])
         # Verify the delivered app, after disk-image tools have written Finder metadata.
-        mount = staging / 'mounted'; mount.mkdir()
-        attached = plistlib.loads(subprocess.check_output(['hdiutil', 'attach', '-readonly', '-nobrowse', '-plist', '-mountpoint', str(mount), str(dmg)]))
-        device = attached['system-entities'][0]['dev-entry']
+        attached = plistlib.loads(subprocess.check_output(['hdiutil', 'attach', '-readonly', '-nobrowse', '-plist', str(dmg)]))
+        volume = next(entity for entity in attached['system-entities'] if entity.get('mount-point'))
+        mount = Path(volume['mount-point']); device = volume['dev-entry']
         try:
             delivered = mount / app.name
             run(['codesign', '--verify', '--deep', '--strict', delivered])

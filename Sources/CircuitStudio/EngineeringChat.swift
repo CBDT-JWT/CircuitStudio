@@ -20,13 +20,35 @@ struct CircuitAIToolResult { var content:String;var image:String?;var stamp:Circ
     private let response:@MainActor (String,[CircuitAIMessage],CircuitAIConfiguration) async throws -> CircuitAIMessage
     private let access:(@MainActor () throws -> CircuitAIConfiguration)?
     init(response:@escaping @MainActor (String,[CircuitAIMessage],CircuitAIConfiguration) async throws -> CircuitAIMessage = { try await CircuitAIService.agent(context:$0,messages:$1,configuration:$2) },access:(@MainActor () throws -> CircuitAIConfiguration)?=nil) { self.response=response;self.access=access }
-    var messages:[Message] { threads[projectID]?.messages ?? [] }
-    var pendingQuestion:Question? { threads[projectID]?.question }
-    var attachments:[CircuitAIImageAttachment] {threads[projectID]?.attachments ?? []}
-    func attach(_ attachment:CircuitAIImageAttachment) {guard attachments.count<4 else{error="每条消息最多添加 4 张图片。";return};threads[projectID,default:Thread()].attachments.append(attachment)}
-    func removeAttachment(_ id:UUID){threads[projectID]?.attachments.removeAll{$0.id==id}}
-    func updateFigure(_ figure:CircuitAIFigure) {guard var thread=threads[projectID] else{return};for i in thread.messages.indices {for j in thread.messages[i].figures.indices where thread.messages[i].figures[j].id==figure.id {thread.messages[i].figures[j]=figure}};threads[projectID]=thread}
-    var draft:String { get { threads[projectID]?.draft ?? "" } set { threads[projectID,default:Thread()].draft=newValue } }
+    #if os(macOS)
+    private(set) var usesCodex = false
+    private(set) var codexToken: String?
+    func selectCodex(_ enabled: Bool) {
+        guard !sending else { return }
+        usesCodex = enabled
+        error = nil
+    }
+    func connectCodex(token: String) async throws {
+        try await LocalCodex.check(token: token)
+        try Task.checkCancellation()
+        codexToken = token
+    }
+    func disconnectCodex() {
+        guard !sending else { return }
+        codexToken = nil
+        error = nil
+    }
+    #else
+    let usesCodex = false
+    #endif
+    private var threadKey: String { (usesCodex ? "codex:" : "cloud:") + projectID }
+    var messages:[Message] { threads[threadKey]?.messages ?? [] }
+    var pendingQuestion:Question? { threads[threadKey]?.question }
+    var attachments:[CircuitAIImageAttachment] {threads[threadKey]?.attachments ?? []}
+    func attach(_ attachment:CircuitAIImageAttachment) {guard attachments.count<4 else{error="每条消息最多添加 4 张图片。";return};threads[threadKey,default:Thread()].attachments.append(attachment)}
+    func removeAttachment(_ id:UUID){threads[threadKey]?.attachments.removeAll{$0.id==id}}
+    func updateFigure(_ figure:CircuitAIFigure) {guard var thread=threads[threadKey] else{return};for i in thread.messages.indices {for j in thread.messages[i].figures.indices where thread.messages[i].figures[j].id==figure.id {thread.messages[i].figures[j]=figure}};threads[threadKey]=thread}
+    var draft:String { get { threads[threadKey]?.draft ?? "" } set { threads[threadKey,default:Thread()].draft=newValue } }
     func activate(_ context:String) throws {
         let object=try JSONSerialization.jsonObject(with:Data(context.utf8)) as? [String:Any]
         guard object?["schema"] as? String=="circuitstudio-assistant-v1",let id=object?["id"] as? String else { throw CircuitError.message("当前电路尚未准备好。") }
@@ -52,12 +74,16 @@ struct CircuitAIToolResult { var content:String;var image:String?;var stamp:Circ
         sending=true;error=nil;activity="正在读取电路…";let token=UUID();generation=token;let requestedProject=projectID
         request=Task {
             defer { if generation==token { sending=false;activity="";request=nil } }
-            var threadID=projectID
+            var threadID=threadKey
             do {
-                var context=try await snapshot();try activate(context);threadID=projectID
-                guard requestedProject.isEmpty || requestedProject==threadID else {throw CircuitError.message("已切换工程，请回到原工程发送。")}
+                var context=try await snapshot();try Task.checkCancellation();try activate(context);threadID=threadKey
+                guard requestedProject.isEmpty || requestedProject==projectID else {throw CircuitError.message("已切换工程，请回到原工程发送。")}
                 var stamp=try CircuitAIStamp.context(context)
-                let configuration=try access?() ?? subscription.configuration()
+                #if os(macOS)
+                let localToken = usesCodex ? codexToken : nil
+                if usesCodex && localToken == nil { throw CircuitError.message("请先连接本机 Codex。") }
+                #endif
+                let configuration = try usesCodex ? nil : (access?() ?? subscription.configuration())
                 let attached=threads[threadID]?.attachments ?? []
                 let taskStart=threads[threadID]?.messages.count ?? 0
                 var figures:[CircuitAIFigure]=[]
@@ -82,9 +108,20 @@ struct CircuitAIToolResult { var content:String;var image:String?;var stamp:Circ
                 threads[threadID,default:Thread()].messages.append(.init(role:"user",text:text,attachments:attached));threads[threadID,default:Thread()].draft="";threads[threadID,default:Thread()].attachments=[]
                 let intent=answer == nil ? text : (threads[threadID]?.intent ?? "")+"\n用户的澄清回答："+text
                 while true {
-                    try Task.checkCancellation();activity="CircuitAI 正在思考…"
+                    try Task.checkCancellation();activity=usesCodex ? "Codex 正在思考…" : "CircuitAI 正在思考…"
                     threads[threadID,default:Thread()].wire=CircuitAIHistory.compact(threads[threadID]?.wire ?? [],request:intent)
-                    let response=try await self.response(context,threads[threadID]?.wire ?? [],configuration)
+                    let history = threads[threadID]?.wire ?? []
+                    let response: CircuitAIMessage
+                    if let configuration {
+                        response = try await self.response(context, history, configuration)
+                    } else {
+                        #if os(macOS)
+                        guard let localToken else { throw CircuitError.message("请先连接本机 Codex。") }
+                        response = try await LocalCodex.respond(context: context, messages: history, token: localToken)
+                        #else
+                        throw CircuitError.message("本机 Codex 仅在 Mac 上可用。")
+                        #endif
+                    }
                     try Task.checkCancellation()
                     threads[threadID,default:Thread()].wire.append(response)
                     if let text=response.content?.string,!text.isEmpty {
@@ -126,6 +163,7 @@ struct CircuitAIToolResult { var content:String;var image:String?;var stamp:Circ
                     await Task.yield()
                 }
             } catch {
+                guard generation == token else { return }
                 if let last=threads[threadID]?.wire.last,last.role=="assistant",let call=last.tool_calls?.first,threads[threadID]?.question==nil {
                     threads[threadID,default:Thread()].wire.append(.init(role:"tool",content:.string("操作已停止。"),tool_call_id:call.id))
                 }
@@ -136,5 +174,8 @@ struct CircuitAIToolResult { var content:String;var image:String?;var stamp:Circ
     static func toolTitle(_ name:String)->String {
         ["apply_foundry_model":"应用 GF180MCU 真实模型","inspect_circuit":"读取电路图","edit_components":"修改元件参数","add_component":"放置元件","add_power_rail":"绘制电源轨","connect_pins":"连接引脚","delete_components":"删除元件","undo_circuit_edit":"撤销电路修改","run_simulation":"运行本地仿真","view_waveforms":"读取波形","configure_plot":"设置图表","list_simulations":"读取仿真记录"][name] ?? "调用工具"
     }
-    func cancel() { generation=UUID();request?.cancel();request=nil;sending=false;activity="" }
+    func cancel() {
+        request?.cancel()
+        // Let the active request close out its own tool history before starting another.
+    }
 }

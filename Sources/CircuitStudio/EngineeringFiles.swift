@@ -93,7 +93,7 @@ import UniformTypeIdentifiers
             if let value=payload["text"] as? String,value.utf8.count <= 20_000_000 {
                 item.setString(value,forType:NSPasteboard.PasteboardType("com.circuitstudio.engineering-selection"));hasData=true
             }
-            for (field,type) in [("png",NSPasteboard.PasteboardType.png),("svg",NSPasteboard.PasteboardType("public.svg-image"))] {
+            for (field,type) in [("svg",NSPasteboard.PasteboardType("public.svg-image")),("png",NSPasteboard.PasteboardType.png)] {
                 if let encoded=payload[field] as? String {
                     guard encoded.utf8.count <= 60_000_000,let bytes=Data(base64Encoded:encoded),field != "png" || NSImage(data:bytes) != nil else { throw CircuitError.message("Invalid clipboard image.") }
                     item.setData(bytes,forType:type);if field == "png",let tiff=NSImage(data:bytes)?.tiffRepresentation{item.setData(tiff,forType:.tiff)};hasData=true

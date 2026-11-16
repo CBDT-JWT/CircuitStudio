@@ -14,7 +14,16 @@ for name in ['Fonts']:shutil.copytree(root/'Sources/CircuitCore/Resources'/name,
 shutil.copytree(root/'Resources/EngineeringEditor',resources/'EngineeringEditor')
 (contents/'Info.plist').write_bytes(plistlib.dumps({'CFBundleExecutable':'EditorChecks','CFBundleIdentifier':'com.circuitstudio.editorchecks','CFBundlePackageType':'APPL'}))
 files=list((root/'Sources/CircuitCore').glob('*.swift'))+[p for p in (root/'Sources/CircuitStudio').glob('*.swift') if p.name not in ['Documents.swift','PreviewApp.swift']]
+# Compile a stable snapshot: File Provider may update source timestamps mid-build.
+snapshot=[]
+for source in files+[root/'scripts/verify_independent.swift']:
+    target=work/'source'/source.relative_to(root);target.parent.mkdir(parents=True,exist_ok=True)
+    shutil.copyfile(source,target);snapshot.append(target)
+files=snapshot[:-1];verification=snapshot[-1]
 spice=root/'Vendor/ngspice/NgSpice.xcframework/macos-arm64_x86_64'
-command=['xcrun','swiftc','-swift-version','6','-parse-as-library','-target',platform.machine()+'-apple-macos26.0','-I',str(spice/'Headers')]+[str(p) for p in files]+[str(partial),str(root/'scripts/verify_independent.swift'),str(spice/'libngspice.a'),'-lc++','-o',str(binary)]
+swift=Path(subprocess.check_output(['xcrun','--find','swiftc'],text=True).strip())
+platform_root=swift.parents[4]/'Platforms/MacOSX.platform/Developer'
+plugin_options=['-sdk',str(platform_root/'SDKs/MacOSX.sdk'),'-external-plugin-path',str(platform_root/'usr/lib/swift/host/plugins')+'#'+str(platform_root/'usr/bin/swift-plugin-server')] if platform_root.exists() else []
+command=[str(swift)]+plugin_options+['-swift-version','6','-parse-as-library','-target',platform.machine()+'-apple-macos26.0','-I',str(spice/'Headers')]+[str(p) for p in files]+[str(partial),str(verification),str(spice/'libngspice.a'),'-lc++','-o',str(binary)]
 subprocess.run(command,check=True)
 subprocess.run([str(binary),str(evidence)],check=True)

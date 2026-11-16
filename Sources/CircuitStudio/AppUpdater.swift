@@ -31,17 +31,17 @@ import Sparkle
 struct CheckForUpdatesButton: View {
     @State private var updater = AppUpdater.shared
     var body: some View {
-        Button("Check for Updates…") { updater.check() }.disabled(!updater.canCheck)
+        Button("检查更新…") { updater.check() }.disabled(!updater.canCheck)
     }
 }
 
 struct UpdateSettings: View {
     @State private var updater = AppUpdater.shared
     var body: some View {
-        Toggle("Check for updates automatically", isOn: $updater.automaticChecks)
-        Toggle("Download updates in the background", isOn: $updater.automaticDownloads).disabled(!updater.automaticChecks)
+        Toggle("自动检查官网更新", isOn: $updater.automaticChecks)
+        Toggle("在后台下载更新", isOn: $updater.automaticDownloads).disabled(!updater.automaticChecks)
         CheckForUpdatesButton()
-        Text("Updates are verified with the app’s signing key before installation.")
+        Text("新版本来自 Circuit Studio 官网，安装前会验证更新签名。")
             .font(.footnote).foregroundStyle(.secondary)
     }
 }

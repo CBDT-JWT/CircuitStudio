@@ -5,7 +5,7 @@ import {newProject,makeComponent,ProjectStore,connectPins,resolveNets,netlist,ro
 import {parseSpice,routeImportedProject,importedNetErrors} from './importer.mjs';
 import {displayValue,schematicMarkup} from './renderer.mjs';
 import {editorAgent,stampFor,defaultConfiguration} from './agent.mjs';
-test('all 78 library entries have drawable geometry and unique pins',()=>{assert.equal(catalog.length,78);for(const entry of catalog){const s=symbol(entry.id);assert(s.ink.length>0,entry.id);assert.equal(new Set(s.pins.map(p=>p.name)).size,s.pins.length,entry.id);}});
+test('all 78 library entries have drawable geometry and unique pins',()=>{assert.equal(catalog.length,78);for(const entry of catalog){const s=symbol(entry.id);assert((s.ink+(s.uprightInk??'')+(s.uprightMarks??[]).map(m=>m.ink).join('')).length>0,entry.id);assert.equal(new Set(s.pins.map(p=>p.name)).size,s.pins.length,entry.id);}});
 test('real pin connections join the intended terminals only',()=>{const p=newProject(),c=p.cells[0];const a=makeComponent('resistor',0,0,'R1'),b=makeComponent('resistor',100,0,'R2');c.components.push(a,b);connectPins(c,[{instanceId:a.id,pinName:'1'},{instanceId:b.id,pinName:'1'}]);let n=resolveNets(c);assert.equal(n.pinNets[a.id+':1'],n.pinNets[b.id+':1']);assert.notEqual(n.pinNets[a.id+':1'],n.pinNets[a.id+':2']);});
 test('crossings are separate, T junctions and explicit dots bond',()=>{
  const c=newProject().cells[0],a={id:uid(),points:[{x:-50,y:0},{x:50,y:0}]},b={id:uid(),points:[{x:0,y:-50},{x:0,y:50}]};c.wires=[a,b];

@@ -14,6 +14,10 @@ struct EngineeringChatDrawer:View {
     @State private var dropTarget=false
     @State private var purchase=false
     @State private var redeem=false
+    #if os(macOS)
+    @State private var codexCode = ""
+    @State private var codexConnection: Task<Void, Never>?
+    #endif
     #if DEBUG
     @State private var relaySettings=false
     #endif
@@ -23,6 +27,28 @@ struct EngineeringChatDrawer:View {
                 Image(systemName:"sparkles").foregroundStyle(StudioStyle.accent)
                 VStack(alignment:.leading,spacing:3) { Text("CircuitAI").font(.headline);Text(chat.projectName).font(.caption).foregroundStyle(.secondary).lineLimit(1) }
                 Spacer()
+                #if os(macOS)
+                Menu {
+                    Button { selectCodex(false) } label: {
+                        if !chat.usesCodex { Label("CircuitAI 云端", systemImage: "checkmark") }
+                        else { Text("CircuitAI 云端") }
+                    }
+                    Button { selectCodex(true) } label: {
+                        if chat.usesCodex { Label("本机 Codex", systemImage: "checkmark") }
+                        else { Text("本机 Codex") }
+                    }
+                    if chat.usesCodex, chat.codexToken != nil {
+                        Divider()
+                        Button("断开 Codex", action: chat.disconnectCodex)
+                    }
+                } label: {
+                    Label(chat.usesCodex ? "本机 Codex" : "云端", systemImage: chat.usesCodex ? "terminal" : "cloud")
+                        .font(.caption.weight(.medium))
+                }
+                .fixedSize()
+                .disabled(chat.sending)
+                .accessibilityLabel("AI 提供方")
+                #endif
                 #if DEBUG
                 Button { relaySettings=true } label: { Image(systemName:"gearshape").frame(width:28,height:28) }.buttonStyle(.plain).help("服务器连接设置").accessibilityLabel("服务器连接设置")
                 #endif
@@ -30,6 +56,7 @@ struct EngineeringChatDrawer:View {
             }.padding(18)
             Divider()
             if chat.preparing { Spacer();ProgressView("正在读取当前电路…");Spacer() }
+            else if chat.usesCodex { localProvider }
             else if !chat.subscription.canRequest { connectionForm }
             else if !cloudConsent {
                 VStack(alignment:.leading,spacing:18){Image(systemName:"sparkles").font(.largeTitle).foregroundStyle(StudioStyle.accent);Text("使用 CircuitAI").font(.title2.weight(.semibold));Text("发送消息时，当前电路的连接、器件参数、对话及你添加的图片会经开发者服务器发送给 DeepSeek，以解读和修改电路。仿真在本机运行；AI 会读取其结果与曲线。").font(.callout);Link("隐私政策",destination:URL(string:"https://www.weitao-jiang.cn/static/circuit-studio/privacy.html")!);Button("同意并继续"){cloudConsent=true}.buttonStyle(.borderedProminent);Button("暂不使用",action:close).buttonStyle(.plain)}.padding(24).frame(maxHeight:.infinity)
@@ -60,6 +87,68 @@ struct EngineeringChatDrawer:View {
                 }
         }
     }
+    @ViewBuilder private var localProvider: some View {
+        #if os(macOS)
+        if chat.codexToken != nil {
+            conversation
+        } else {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Image(systemName: "terminal").font(.title2).foregroundStyle(StudioStyle.accent)
+                    Text("连接本机 Codex").font(.title3.weight(.semibold))
+                    Text("将启动命令粘贴到终端运行，保持终端开启，然后粘贴显示的连接码。需使用已登录的 Codex CLI。")
+                        .font(.callout).foregroundStyle(.secondary)
+                    Button {
+                        NSPasteboard.general.clearContents()
+                        NSPasteboard.general.setString(LocalCodex.setupCommand, forType: .string)
+                    } label: { Label("复制启动命令", systemImage: "doc.on.doc") }
+                    SecureField("终端中的连接码", text: $codexCode).textFieldStyle(.roundedBorder)
+                        .onSubmit(connectCodex)
+                    Text("发送时，当前电路、对话及附图会交给本机 Codex，并由其配置的模型服务处理。")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Button("同意并连接", action: connectCodex)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(codexConnection != nil || !LocalCodex.validToken(trimmedCodexCode))
+                    if codexConnection != nil { ProgressView("正在验证连接…").controlSize(.small) }
+                    if let error = chat.error { Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled) }
+                    Link("Codex CLI 安装说明", destination: URL(string: "https://developers.openai.com/codex/cli")!)
+                        .font(.caption)
+                }.padding(22).frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        #else
+        EmptyView()
+        #endif
+    }
+
+    #if os(macOS)
+    private var trimmedCodexCode: String { codexCode.trimmingCharacters(in: .whitespacesAndNewlines) }
+
+    private func selectCodex(_ enabled: Bool) {
+        if !enabled {
+            codexConnection?.cancel()
+            codexConnection = nil
+            codexCode = ""
+        }
+        chat.selectCodex(enabled)
+    }
+
+    private func connectCodex() {
+        let token = trimmedCodexCode
+        guard codexConnection == nil, LocalCodex.validToken(token) else { return }
+        chat.error = nil
+        codexConnection = Task {
+            do {
+                try await chat.connectCodex(token: token)
+                codexCode = ""
+            } catch {
+                if !Task.isCancelled { chat.error = error.localizedDescription }
+            }
+            if !Task.isCancelled { codexConnection = nil }
+        }
+    }
+    #endif
+
     private var connectionForm:some View {
         VStack(alignment:.leading,spacing:18) {
             Spacer(minLength:0)
@@ -97,7 +186,7 @@ struct EngineeringChatDrawer:View {
                         }
                         ForEach(chat.messages) { message in
                             VStack(alignment:.leading,spacing:7) {
-                                Text(message.role == "user" ? "你" : message.role == "tool" ? "操作结果" : "CircuitAI").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                Text(message.role == "user" ? "你" : message.role == "tool" ? "操作结果" : (chat.usesCodex ? "Codex" : "CircuitAI")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                                 if message.role=="tool" { Text(message.text).font(.caption).foregroundStyle(.secondary).textSelection(.enabled) } else { CircuitAIMarkdown(text:message.text).frame(maxWidth:.infinity,alignment:.leading) }
                                 if !message.attachments.isEmpty {ScrollView(.horizontal){HStack{ForEach(message.attachments){attachment in CircuitDataImage(data:attachment.data).aspectRatio(contentMode:.fit).frame(height:110).accessibilityLabel(attachment.name)}}}}
                                 ForEach(message.figures) {figure in CircuitAIFigureCard(figure:figure,update:figureChanged)}
@@ -123,7 +212,7 @@ struct EngineeringChatDrawer:View {
             }
             Divider()
             #if DEBUG
-            if chat.subscription.privateRelay {
+            if !chat.usesCodex, chat.subscription.privateRelay {
                 HStack(spacing:5) {
                     Image(systemName:"server.rack")
                     Text(chat.subscription.activationStatus.isEmpty ? "通过你的服务器连接 CircuitAI" : chat.subscription.activationStatus)

@@ -14,7 +14,7 @@ def deploy(release_directory, host='root@www.weitao-jiang.cn'):
     metadata = json.loads((release_directory / 'release.json').read_text())
     with tempfile.TemporaryDirectory(prefix='circuitstudio-deploy-') as temp:
         staging = Path(temp)
-        shutil.copytree(ROOT / 'Service', staging / 'Service', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+        shutil.copytree(ROOT / 'Service', staging / 'Service', ignore=shutil.ignore_patterns('__pycache__', '*.pyc', 'data', '*.sqlite3*'))
         shutil.copytree(ROOT / 'Website', staging / 'Website', ignore=shutil.ignore_patterns('downloads', 'ASSETS.md', 'glass-sheets.png', 'schematic.png', 'illustration.png', 'blank.png'))
         # A content query changes whenever an asset changes, avoiding stale cached UI.
         for html in (staging / 'Website').glob('*.html'):
@@ -29,7 +29,7 @@ def deploy(release_directory, host='root@www.weitao-jiang.cn'):
                 text = text.replace('"' + relative + '"', '"' + relative + '?v=' + digest + '"')
             html.write_text(text)
         (staging / 'Release').mkdir()
-        for name in [metadata['file'], 'release.json', 'SHA256SUMS.txt']:
+        for name in [metadata['file'], 'release.json', 'SHA256SUMS.txt'] + (['appcast.xml'] if (release_directory / 'appcast.xml').is_file() else []):
             shutil.copy2(release_directory / name, staging / 'Release' / name)
         remote = '/srv/circuitstudio-staging-' + metadata['version']
         transport = 'ssh -o ClearAllForwardings=yes -o BatchMode=yes'

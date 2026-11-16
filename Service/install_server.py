@@ -142,6 +142,10 @@ for path in (staging / 'Website').rglob('*'):
 (site / 'downloads').mkdir(exist_ok=True)
 atomic_copy(staging / 'Release/release.json', site / 'downloads/release.json')
 atomic_copy(staging / 'Release/SHA256SUMS.txt', site / 'downloads/SHA256SUMS.txt')
+# The same immutable DMG serves direct downloads and signed Sparkle updates.
+atomic_copy(archive, site / 'downloads' / metadata['file'])
+if (staging / 'Release/appcast.xml').is_file():
+    atomic_copy(staging / 'Release/appcast.xml', site / 'downloads/appcast.xml')
 
 nginx = Path('/etc/nginx/sites-enabled/homepage').resolve()
 original = nginx.read_text()

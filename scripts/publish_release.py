@@ -33,6 +33,9 @@ def main():
     parser.add_argument('--build', default=default_build)
     parser.add_argument('--notes', type=Path)
     parser.add_argument('--host', default='root@www.weitao-jiang.cn')
+    parser.add_argument('--server-only', action='store_true', help='Publish the DMG and signed update feed on the owner server without GitHub Releases')
+    parser.add_argument('--directory', type=Path, help='Verified DMG output directory')
+    parser.add_argument('--sparkle-tools', type=Path, help='Existing Sparkle bin directory')
     parser.add_argument('--repo', default='CBDT-JWT/CircuitStudio')
     parser.add_argument('--sign-identity', default='auto')
     parser.add_argument('--notary-profile')
@@ -47,28 +50,35 @@ def main():
         parser.error('Commit the source changes first so the release tag identifies exactly what was built.')
     notes = args.notes or ROOT / f'docs/release-{args.version}.md'
     if not notes.is_file(): parser.error('Provide release notes with --notes PATH.')
-    tools = tools_directory()
+    tools = args.sparkle_tools or tools_directory()
     public_key = output([tools / 'generate_keys', '--account', ACCOUNT, '-p'])
     trusted_key = plistlib.loads((ROOT / 'Resources/Info.Direct.plist').read_bytes())['SUPublicEDKey']
     if public_key != trusted_key:
         parser.error('The local Keychain signing key does not match the key trusted by installed apps.')
     tag = 'v' + args.version
-    prior = subprocess.run(['gh', 'release', 'view', tag, '--repo', args.repo, '--json', 'isDraft,targetCommitish'], capture_output=True, text=True)
-    if prior.returncode == 0:
-        if not args.resume or not json.loads(prior.stdout)['isDraft']:
-            parser.error('This version already exists. Increase the version/build, or resume its existing draft.')
-    elif args.resume:
-        parser.error('There is no draft release for this version to resume.')
-    if args.resume and output(['git', 'rev-list', '-n', '1', tag]) != output(['git', 'rev-parse', 'HEAD']):
-        parser.error('The draft tag must identify the current source commit before resuming.')
-    # Sparkle orders updates by CFBundleVersion, independently of the display version.
-    latest = json.loads(output(['gh', 'release', 'view', '--repo', args.repo, '--json', 'tagName']))['tagName']
-    with tempfile.TemporaryDirectory(prefix='circuitstudio-prior-release-') as temporary:
-        run(['gh', 'release', 'download', latest, '--repo', args.repo, '--pattern', 'release.json', '--dir', temporary])
-        latest_metadata = json.loads((Path(temporary) / 'release.json').read_text())
-    if int(args.build) <= int(latest_metadata['build']):
-        parser.error('Increase CURRENT_PROJECT_VERSION above the latest published build before publishing.')
-    directory = ROOT / 'Release/Direct'
+    if not args.server_only:
+        prior = subprocess.run(['gh', 'release', 'view', tag, '--repo', args.repo, '--json', 'isDraft,targetCommitish'], capture_output=True, text=True)
+        if prior.returncode == 0:
+            if not args.resume or not json.loads(prior.stdout)['isDraft']:
+                parser.error('This version already exists. Increase the version/build, or resume its existing draft.')
+        elif args.resume:
+            parser.error('There is no draft release for this version to resume.')
+        if args.resume and output(['git', 'rev-list', '-n', '1', tag]) != output(['git', 'rev-parse', 'HEAD']):
+            parser.error('The draft tag must identify the current source commit before resuming.')
+        # Sparkle orders updates by CFBundleVersion, independently of the display version.
+        latest = json.loads(output(['gh', 'release', 'view', '--repo', args.repo, '--json', 'tagName']))['tagName']
+        with tempfile.TemporaryDirectory(prefix='circuitstudio-prior-release-') as temporary:
+            run(['gh', 'release', 'download', latest, '--repo', args.repo, '--pattern', 'release.json', '--dir', temporary])
+            latest_metadata = json.loads((Path(temporary) / 'release.json').read_text())
+        if int(args.build) <= int(latest_metadata['build']):
+            parser.error('Increase CURRENT_PROJECT_VERSION above the latest published build before publishing.')
+    else:
+        import urllib.request
+        with urllib.request.urlopen('https://www.weitao-jiang.cn/static/circuit-studio/downloads/release.json', timeout=30) as response:
+            current = json.load(response)
+        if int(args.build) <= int(current['build']):
+            parser.error('Increase the build above the current website release.')
+    directory = args.directory or ROOT / 'Release/Direct'
     if not args.skip_build:
         environment = Path.home() / 'Library/Caches/CircuitStudio/packaging'
         python = environment / 'bin/python'
@@ -85,21 +95,34 @@ def main():
     archive = directory / metadata['file']
     if hashlib.sha256(archive.read_bytes()).hexdigest() != metadata['sha256']:
         parser.error('The local archive checksum does not match its release metadata.')
-    updates = ROOT / 'Release/Updates'; updates.mkdir(parents=True, exist_ok=True)
+    updates = directory / 'updates' if args.server_only else ROOT / 'Release/Updates'; updates.mkdir(parents=True, exist_ok=True)
     shutil.copy2(archive, updates / archive.name)
     shutil.copy2(notes, updates / (archive.stem + '.md'))
-    run([tools / 'generate_appcast', '--account', ACCOUNT, '--download-url-prefix', f'https://github.com/{args.repo}/releases/download/{tag}/',
+    download_prefix = 'https://www.weitao-jiang.cn/static/circuit-studio/downloads/' if args.server_only else f'https://github.com/{args.repo}/releases/download/{tag}/'
+    run([tools / 'generate_appcast', '--account', ACCOUNT, '--download-url-prefix', download_prefix,
          '--link', 'https://www.weitao-jiang.cn/static/circuit-studio/', '--versions', args.build,
          '--maximum-deltas', '0', '--maximum-versions', '3', '--embed-release-notes', '-o', updates / 'appcast.xml', updates])
-    run([tools / 'sign_update', '--account', ACCOUNT, '--verify', updates / 'appcast.xml'])
+    run(['swift', '-module-cache-path', directory / '.verification-cache', ROOT / 'scripts/verify_update.swift', trusted_key, updates / 'appcast.xml'])
     import xml.etree.ElementTree as ET
     ns = {'sparkle': 'http://www.andymatuschak.org/xml-namespaces/sparkle'}
     feed = ET.parse(updates / 'appcast.xml')
     item = next(item for item in feed.findall('./channel/item') if item.findtext('sparkle:version', namespaces=ns) == args.build)
     enclosure = item.find('enclosure')
-    if enclosure.get('url') != f'https://github.com/{args.repo}/releases/download/{tag}/{archive.name}':
+    if enclosure.get('url') != download_prefix + archive.name:
         raise RuntimeError('The appcast installer URL does not match this release')
-    run([tools / 'sign_update', '--account', ACCOUNT, '--verify', archive, enclosure.get('{' + ns['sparkle'] + '}edSignature')])
+    run(['swift', '-module-cache-path', directory / '.verification-cache', ROOT / 'scripts/verify_update.swift', trusted_key, archive, enclosure.get('{' + ns['sparkle'] + '}edSignature')])
+    if args.server_only:
+        shutil.copy2(updates / 'appcast.xml', directory / 'appcast.xml')
+        deploy(directory, args.host)
+        import hashlib, urllib.request
+        for name in [archive.name, 'appcast.xml']:
+            with urllib.request.urlopen(download_prefix+name, timeout=120) as response:
+                digest = hashlib.sha256(response.read()).hexdigest()
+            if digest != hashlib.sha256((directory/name).read_bytes()).hexdigest():
+                raise RuntimeError('Live release bytes differ: '+name)
+        print('Verified website: https://www.weitao-jiang.cn/static/circuit-studio/')
+        print('Verified signed update feed: '+download_prefix+'appcast.xml')
+        return
     commit = output(['git', 'rev-parse', 'HEAD'])
     branch = output(['git', 'branch', '--show-current'])
     if not branch: parser.error('Publish from a named branch.')

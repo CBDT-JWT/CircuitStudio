@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {newProject,makeComponent,uid,clone,ProjectStore} from './model.mjs';
-import {pinsFor,symbol} from './symbols.mjs';
+import {pinsFor,symbol,transformPoint,polarityEndpoints} from './symbols.mjs';
 import {selectionPayload,insertPayload,translateSelection,figureBetween,resizeFigure} from './editing.mjs';
-import {svgDocument} from './renderer.mjs';
+import {svgDocument,uprightMarkup,schematicMarkup} from './renderer.mjs';
 test('copy, paste and move preserve every authored wire bend and junction',()=>{
  const store=new ProjectStore(),c=store.cell,a=makeComponent('resistor',0,0,'R1'),b=makeComponent('resistor',200,0,'R2');c.components.push(a,b);
  const pa=pinsFor(a)[0],pb=pinsFor(b)[0];c.wires.push({id:uid(),start:{instanceId:a.id,pinName:pa.name},end:{instanceId:b.id,pinName:pb.name},points:[pa,{x:pa.x,y:-80},{x:80,y:-80},{x:80,y:-120},{x:pb.x,y:-120},pb]});c.junctions=[{x:80,y:-80}];
@@ -23,10 +23,35 @@ test('drawn geometry has matching preview/commit midpoint, constraints and side 
  resizeFigure(rect,'e',{x:-20,y:40});assert.equal(rect.parameters.width,'30');assert.equal(rect.x,-5);
 });
 test('polarity has editable bold text, controlled spacing and valid export geometry',()=>{
- const s=symbol('polarity',{text:'V_{out}',spacing:'120',strokeWidth:'3'});assert.match(s.ink,/stroke-width="3"/);assert.match(s.ink,/M-64.5/);assert.match(s.uprightInk,/baseline-shift="sub"/);assert.match(s.uprightInk,/out/);
+ const s=symbol('polarity',{text:'V_{out}',spacing:'120',strokeWidth:'3'});assert.match(s.uprightMarks[0].ink,/stroke-width="3"/);assert.equal(s.uprightMarks[0].x,60);assert.match(s.uprightInk,/baseline-shift="sub"/);assert.match(s.uprightInk,/out/);
  const c=newProject().cells[0];c.components.push(makeComponent('polarity',1000,-200,'',{text:'V_{out}',spacing:'120'}));const svg=svgDocument(c);assert.match(svg,/V<tspan/);assert(!svg.includes('data-resize='));
 });
 
 test('copy and move keep explicit crossing junctions inside wire segments',()=>{const c=newProject().cells[0];c.wires=[{id:uid(),points:[{x:-50,y:0},{x:50,y:0}]},{id:uid(),points:[{x:0,y:-50},{x:0,y:50}]}];c.junctions=[{x:0,y:0}];const ids=new Set(c.wires.map(w=>w.id)),packet=selectionPayload(c,ids);assert.deepEqual(packet.junctions,[{x:0,y:0}]);translateSelection(c,ids,{x:30,y:20});assert.deepEqual(c.junctions,[{x:30,y:20}]);});
 
 test('moving a wire alone keeps its unmoved component terminals attached',()=>{const c=newProject().cells[0],a=makeComponent('resistor',0,0,'R1'),b=makeComponent('resistor',200,0,'R2');c.components=[a,b];const pa=pinsFor(a)[0],pb=pinsFor(b)[0],wire={id:uid(),start:{instanceId:a.id,pinName:pa.name},end:{instanceId:b.id,pinName:pb.name},points:[pa,{x:pa.x,y:-80},{x:pb.x,y:-80},pb]};c.wires=[wire];translateSelection(c,new Set([wire.id]),{x:30,y:20});assert.deepEqual(wire.points[0],{x:pa.x,y:pa.y});assert.deepEqual(wire.points.at(-1),{x:pb.x,y:pb.y});assert(wire.points.some(p=>p.x===pa.x+30&&p.y===-60));assert(wire.points.some(p=>p.x===pb.x+30&&p.y===-60));});
+
+test('polarity drag anchors plus first and minus last across directions and keeps glyphs horizontal',()=>{
+ const near=(a,b)=>{assert(Math.abs(a.x-b.x)<1e-8);assert(Math.abs(a.y-b.y)<1e-8);};
+ for(const delta of [{x:85,y:0},{x:-85,y:0},{x:0,y:95},{x:0,y:-95},{x:55,y:75},{x:-55,y:75},{x:55,y:-75},{x:-55,y:-75}]){
+  const start={x:15,y:25},end={x:start.x+delta.x,y:start.y+delta.y},part=figureBetween('polarity',start,end,{center:true}),ends=polarityEndpoints(part.parameters);
+  near(transformPoint(part,ends.plus),start);near(transformPoint(part,ends.minus),end);
+  for(const rotation of [0,45,90,180,270])for(const flipX of [false,true])for(const flipY of [false,true]){
+   Object.assign(part,{rotation,flipX,flipY});const markup=uprightMarkup(part,symbol(part.type,part.parameters),'black');assert(!/rotate\(|scale\(/.test(markup));assert.match(markup,/data-polarity-end="positive"/);assert.match(markup,/data-polarity-end="negative"/);
+   const cell=newProject().cells[0];cell.components.push(part);assert.match(svgDocument(cell),/data-polarity-end="positive"/);
+  }
+ }
+});
+test('resizing either polarity endpoint preserves the opposite anchor including rotation and flips',()=>{
+ const near=(a,b)=>assert(Math.hypot(a.x-b.x,a.y-b.y)<1e-8);
+ for(const key of ['positive','negative']){const part=figureBetween('polarity',{x:15,y:25},{x:90,y:80});Object.assign(part,{rotation:90,flipX:true});
+  const before=polarityEndpoints(part.parameters),opposite=transformPoint(part,key==='positive'?before.minus:before.plus),end={x:-70,y:135};resizeFigure(part,key,end);const after=polarityEndpoints(part.parameters);near(transformPoint(part,key==='positive'?after.plus:after.minus),end);near(transformPoint(part,key==='positive'?after.minus:after.plus),opposite);
+ }
+});
+
+test('text frames are editing aids and never appear in SVG exports or copied SVG',()=>{
+ const cell=newProject().cells[0];cell.notes=[{id:'note-1',text:'输出 V_{out}\nNext line',position:{x:13.25,y:-27.75},size:18,bold:true}];
+ const on=schematicMarkup(cell,{interactive:true});assert.match(on,/data-text-frame="true"/);assert.match(on,/data-note-hit="true"/);
+ const off=schematicMarkup(cell,{interactive:true,showTextFrames:false});assert(!off.includes('data-text-frame'));assert.match(off,/data-note-hit="true"/);
+ const svg=svgDocument(cell,{selection:new Set(['note-1'])});assert(!svg.includes('data-text-frame'));assert(!svg.includes('data-note-hit'));assert(svg.includes('baseline-shift="sub"'));assert(svg.includes('13.25'));
+});

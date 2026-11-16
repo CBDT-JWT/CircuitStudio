@@ -23,9 +23,9 @@
 	<key>CSSupportURL</key>
 	<string>$(CS_SUPPORT_URL)</string>
 	<key>SUFeedURL</key>
-	<string>https://github.com/CBDT-JWT/CircuitStudio/releases/latest/download/appcast.xml</string>
+	<string>https://www.weitao-jiang.cn/static/circuit-studio/downloads/appcast.xml</string>
 	<key>SUPublicEDKey</key>
-	<string>xpwSs/aRlKI6NpjW8s4WF5qyAN3c4/SaGJ7ZJeFWFQ0=</string>
+	<string>drZBzz73q6bzbSo5Jqpms1pl9kqAykadorEFyIKDcyI=</string>
 	<key>SUEnableInstallerLauncherService</key>
 	<true/>
 	<key>SUEnableDownloaderService</key>
@@ -113,9 +113,18 @@
 			</dict>
 		</dict>
 	</array>
-
-	<key>CircuitAIServiceURL</key><string>$(CIRCUIT_AI_SERVICE_URL)</string>
-	<key>CircuitAIProductIDs</key><array><string>$(CIRCUIT_AI_MONTHLY_PRODUCT_ID)</string></array>
-	<key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
+	<key>CircuitAIServiceURL</key>
+	<string>$(CIRCUIT_AI_SERVICE_URL)</string>
+	<key>CircuitAIProductIDs</key>
+	<array>
+		<string>$(CIRCUIT_AI_MONTHLY_PRODUCT_ID)</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>SUScheduledCheckInterval</key>
+	<integer>3600</integer>
 </dict>
 </plist>

@@ -26,12 +26,17 @@ const groups=[
 export const catalog=groups.flatMap(([category,categoryEN,items])=>items.map(([id,title,titleEN])=>({id,title,titleEN:titleEN??title,category,categoryEN})));
 export const aliases={'inductor-compact':'inductor','ideal-switch':'open-switch','externally-controlled-switch':'controlled-switch','voltage-controlled-switch':'voltage-switch','opamp-wide':'opamp','opamp-differential-wide-crossed':'fdamp','opamp-differential-crossed':'fdamp-small','opamp-differential':'fdamp','port':'cell-pin','port-filled':'bias-port','xfmr':'transformer','and-gate':'and','or-gate':'or','nand-gate':'nand','nor-gate':'nor','xor-gate':'xor','xnor-gate':'xnor','d-flip-flop':'dff','d-flip-flop-reset':'dff-reset','d-flip-flop-q':'dff-q','delay-cell':'delay','integrator-ct':'integrator','integrator-dt':'discrete-integrator','arrow-line':'arrow','circle':'ellipse','depletion-n-channel-mosfet':'depletion-nmos','depletion-p-channel-mosfet':'depletion-pmos'};
 export function canonical(id){return aliases[id]??id;}
+export function polarityEndpoints(parameters={}){
+ const spacing=Math.max(1,Math.min(2000,Number(parameters.spacing)||64)),angle=(Number(parameters.axisAngle)||0)*Math.PI/180;
+ const plus={x:Math.cos(angle)*spacing/2,y:Math.sin(angle)*spacing/2};
+ return {plus,minus:{x:-plus.x,y:-plus.y}};
+}
 export function legacySymbol(raw,parameters={}) {
  const id=canonical(raw);let pins=pair(),ink='',prefix='X',defaults={},electrical=true;
  if(['resistor','variable-resistor'].includes(id)){prefix='R';defaults={value:'1k'};ink=path('M0 -20V-12L5 -9L-5 -3L5 3L-5 9L0 12V20');}
  else if(['capacitor','variable-capacitor'].includes(id)){prefix='C';defaults={value:'1p'};ink=path('M0 -20V-4M-10 -4H10M-10 4H10M0 4V20');}
  else if(['inductor','inductor-large','variable-inductor','center-tapped-coil','t-coil'].includes(id)){prefix='L';defaults={value:'10u'};ink=path('M0 -20V-14C12 -14 12 -7 0 -7C12 -7 12 0 0 0C12 0 12 7 0 7C12 7 12 14 0 14V20');if(['center-tapped-coil','t-coil'].includes(id)){pins.push(pin('CT',20,0,'east'));ink+=line(0,0,20,0);}if(id==='t-coil')ink+=path('M0 -18H-15V-4M-21 -4H-9M-21 4H-9M-15 4V18H0');}
- else if(['ground','vdd-port','bias-port','cell-pin','power-rail','no-connect'].includes(id)){prefix='';defaults={name:id==='vdd-port'||id==='power-rail'?'VDD':id==='ground'?'0':'PIN'};if(['vdd-port','power-rail'].includes(id))defaults.scope='global';pins=[pin(id==='ground'?'0':'1',0,id==='ground'?-10:10,id==='ground'?'north':'south')];ink=id==='ground'?path('M0 -10V0M-8 0H8M-5 5H5M-2 10H2'):id==='vdd-port'||id==='power-rail'?path('M0 10V-5M-16 -5H16'):id==='no-connect'?path('M-6 -6L6 6M-6 6L6 -6'):circle(0,0,4,id==='bias-port'?'currentColor':'none')+line(0,4,0,10);if(id==='no-connect'){pins=[];electrical=false;}}
+ else if(['ground','vdd-port','bias-port','cell-pin','power-rail','no-connect'].includes(id)){prefix='';defaults={name:id==='vdd-port'||id==='power-rail'?'VDD':id==='ground'?'0':id==='cell-pin'?'':'PIN'};if(['vdd-port','power-rail'].includes(id))defaults.scope='global';pins=[pin(id==='ground'?'0':'1',0,id==='ground'?-10:10,id==='ground'?'north':'south')];ink=id==='ground'?path('M0 -10V0M-8 0H8M-5 5H5M-2 10H2'):id==='vdd-port'||id==='power-rail'?path('M0 10V-5M-16 -5H16'):id==='no-connect'?path('M-6 -6L6 6M-6 6L6 -6'):circle(0,0,4,id==='bias-port'?'currentColor':'none')+line(0,4,0,10);if(id==='no-connect'){pins=[];electrical=false;}}
  else if(['voltage-source','current-source','battery','vcvs','vccs','cccs','ccvs','current-sensor','supply-stimulus'].includes(id)){pins=sourcePins();prefix=id==='current-source'?'I':({vcvs:'E',vccs:'G',cccs:'F',ccvs:'H'}[id]??'V');defaults={dc:'1',waveform:'dc',acMagnitude:'',acPhase:'0',low:'0',high:'1.8',delay:'0',rise:'1n',fall:'1n',width:'5n',period:'10n',offset:'0',amplitude:'1',frequency:'1k',damping:'0',phase:'0',pwlPoints:'0 0 1n 1'};
    if(id==='supply-stimulus'){pins=[pin('+',0,10,'south'),pin('-',0,-5,'north',true)];ink=path('M0 10V-5M-16 -5H16');}
    else if(id==='current-sensor'){pins=[pin('+',-15,0,'west'),pin('-',15,0,'east')];ink=line(-15,0,15,0)+arrow(0,0,1,0);}
@@ -61,8 +66,10 @@ export function legacySymbol(raw,parameters={}) {
 export function symbol(raw,parameters={}){
  const original=legacySymbol(raw,parameters),graphic=referenceGraphic(original.id,parameters);
  if(original.id==='polarity'){
-  const spacing=Math.max(24,Math.min(2000,Number(parameters.spacing)||64)),size=Math.max(8,Math.min(96,Number(parameters.fontSize)||18)),weight=Math.max(1,Math.min(8,Number(parameters.strokeWidth)||2.4)),half=4.5;
-  return {...original,defaults:{text:'V_x',spacing:'64',fontSize:'18',strokeWidth:'2.4'},ink:`<g stroke-width="${weight}" stroke-linecap="square">${line(-spacing/2-half,0,-spacing/2+half,0)}${line(spacing/2-half,0,spacing/2+half,0)}${line(spacing/2,-half,spacing/2,half)}</g>`,uprightInk:`<text data-inline-parameter="text" x="0" y="0" text-anchor="middle" dominant-baseline="central" fill="currentColor" stroke="none" font-size="${size}" font-weight="700" font-style="italic">${annotationText(parameters.text??'V_x')}</text>`,bounds:{x:-spacing/2-6,y:-size,width:spacing+12,height:size*2}};
+  const {plus,minus}=polarityEndpoints(parameters),size=Math.max(8,Math.min(96,Number(parameters.fontSize)||18)),weight=Math.max(1,Math.min(8,Number(parameters.strokeWidth)||2.4)),half=4.5;
+  const mark=positive=>`<g fill="none" stroke="currentColor" stroke-width="${weight}" stroke-linecap="square">${line(-half,0,half,0)}${positive?line(0,-half,0,half):''}</g>`;
+  const radius=Math.max(size,String(parameters.text??'V_x').length*size*.4),x=Math.max(Math.abs(plus.x)+6,radius),y=Math.max(Math.abs(plus.y)+6,radius);
+  return {...original,defaults:{text:'V_x',spacing:'64',fontSize:'18',strokeWidth:'2.4'},ink:'',uprightMarks:[{...plus,end:'positive',ink:mark(true)},{...minus,end:'negative',ink:mark(false)}],uprightInk:`<text data-inline-parameter="text" x="0" y="0" text-anchor="middle" dominant-baseline="central" fill="currentColor" stroke="none" font-size="${size}" font-weight="700" font-style="italic">${annotationText(parameters.text??'V_x')}</text>`,bounds:{x:-x,y:-y,width:x*2,height:y*2}};
  }
  if(!graphic)return original;
  let ink=graphic.ink;
@@ -80,7 +87,7 @@ export function symbol(raw,parameters={}){
  if(id==='polyline'&&parameters.points)ink=original.ink;
  return {...original,...graphic,ink,pins:graphic.pins,bounds:['rectangle','ellipse','line','arrow','polyline'].includes(id)?original.bounds:graphic.bounds};
 }
-export const librarySVG=raw=>canonical(raw)==='polarity'?`<svg viewBox="-46 -25 92 50" aria-hidden="true"><g fill="none" stroke="currentColor">${symbol(raw).ink}${symbol(raw).uprightInk}</g></svg>`:referenceLibrarySVG(canonical(raw));
+export const librarySVG=raw=>canonical(raw)==='polarity'?`<svg viewBox="-46 -25 92 50" aria-hidden="true"><g fill="none" stroke="currentColor">${symbol(raw).uprightMarks.map(m=>`<g transform="translate(${m.x} ${m.y})">${m.ink}</g>`).join('')}${symbol(raw).uprightInk}</g></svg>`:referenceLibrarySVG(canonical(raw));
 export const libraryInk=raw=>referenceLibraryInk(canonical(raw));
 export function legacyPinsFor(component){return legacySymbol(component.type,component.parameters).pins.map(p=>({...p,...transformPoint(component,p)}));}
 export function transformPoint(component,p){const a=(component.rotation??0)*Math.PI/180;const x=p.x*(component.flipX?-1:1),y=p.y*(component.flipY?-1:1);return {x:component.x+Math.round((x*Math.cos(a)-y*Math.sin(a))*1e8)/1e8,y:component.y+Math.round((x*Math.sin(a)+y*Math.cos(a))*1e8)/1e8};}

@@ -1,5 +1,5 @@
 import {clone,uid,makeComponent,samePoint,simplify,routeOrthogonal} from './model.mjs';
-import {pinsFor,symbol,transformPoint} from './symbols.mjs';
+import {pinsFor,symbol,transformPoint,polarityEndpoints} from './symbols.mjs';
 
 const containsPoint=(wire,p)=>wire.points.slice(1).some((b,i)=>{const a=wire.points[i];return Math.abs((p.x-a.x)*(b.y-a.y)-(p.y-a.y)*(b.x-a.x))<1e-5&&p.x>=Math.min(a.x,b.x)&&p.x<=Math.max(a.x,b.x)&&p.y>=Math.min(a.y,b.y)&&p.y<=Math.max(a.y,b.y);});
 // Copy geometry verbatim. Only identities and coordinates change on insertion.
@@ -57,6 +57,8 @@ export function translateSelection(cell,ids,delta,before=clone(cell)){
 export function figureBetween(type,start,pointer,{shift=false,center=false}={}){
  let dx=pointer.x-start.x,dy=pointer.y-start.y;
  if(shift){if(['rectangle','ellipse'].includes(type)){const size=Math.max(Math.abs(dx),Math.abs(dy));dx=(Math.sign(dx)||1)*size;dy=(Math.sign(dy)||1)*size;}else{const angle=Math.round(Math.atan2(dy,dx)/(Math.PI/4))*Math.PI/4,length=Math.hypot(dx,dy);dx=Math.round(Math.cos(angle)*length);dy=Math.round(Math.sin(angle)*length);}}
+ // Polarity starts at its positive end; Alt must not move that anchor.
+ if(type==='polarity'){const part=makeComponent(type,0,0,'',{spacing:String(Math.max(1,Math.hypot(dx,dy))),axisAngle:String(Math.atan2(-dy,-dx)*180/Math.PI)});part.x=start.x+dx/2;part.y=start.y+dy/2;return part;}
  const part=makeComponent(type,0,0,'',['line','arrow'].includes(type)?{dx:String(dx*(center?2:1)),dy:String(dy*(center?2:1))}:{width:String(Math.max(1,Math.abs(dx)*(center?2:1))),height:String(Math.max(1,Math.abs(dy)*(center?2:1)))});
  part.x=start.x+(center?0:dx/2);part.y=start.y+(center?0:dy/2);return part;
 }
@@ -64,13 +66,16 @@ export function figureHandles(part){
  const p=part.parameters;let points=[];
  if(['rectangle','ellipse'].includes(part.type)){const w=Number(p.width)||40,h=Number(p.height)||24;points=[['nw',-w/2,-h/2],['ne',w/2,-h/2],['se',w/2,h/2],['sw',-w/2,h/2],['n',0,-h/2],['e',w/2,0],['s',0,h/2],['w',-w/2,0]];}
  if(['line','arrow'].includes(part.type))points=[['start',-Number(p.dx??40)/2,-Number(p.dy??0)/2],['end',Number(p.dx??40)/2,Number(p.dy??0)/2]];
- if(part.type==='polarity')points=[['spacing',Number(p.spacing??64)/2,0]];
+ if(part.type==='polarity'){const {plus,minus}=polarityEndpoints(p);points=[['positive',plus.x,plus.y],['negative',minus.x,minus.y]];}
  if(part.type==='polyline')points=(p.points??[]).map((p,i)=>[String(i),p.x,p.y]);
  return points.map(([key,x,y])=>({key,...transformPoint(part,{x,y})}));
 }
 export function resizeFigure(part,key,point){
  const angle=-(part.rotation??0)*Math.PI/180,dx=point.x-part.x,dy=point.y-part.y,x=(dx*Math.cos(angle)-dy*Math.sin(angle))*(part.flipX?-1:1),y=(dx*Math.sin(angle)+dy*Math.cos(angle))*(part.flipY?-1:1),p=part.parameters;
- if(part.type==='polarity'){p.spacing=String(Math.max(24,Math.abs(x)*2));return;}
+ if(part.type==='polarity'){
+  const {plus,minus}=polarityEndpoints(p),positive=key!=='negative',other=positive?minus:plus,midpoint=transformPoint(part,{x:(x+other.x)/2,y:(y+other.y)/2}),vx=(x-other.x)*(positive?1:-1),vy=(y-other.y)*(positive?1:-1);
+  p.spacing=String(Math.max(1,Math.hypot(vx,vy)));p.axisAngle=String(Math.atan2(vy,vx)*180/Math.PI);part.x=midpoint.x;part.y=midpoint.y;return;
+ }
  if(part.type==='polyline'){p.points[Number(key)]={x,y};return;}
  if(['line','arrow'].includes(part.type)){
   const sign=key==='start'?-1:1,other={x:-sign*Number(p.dx??40)/2,y:-sign*Number(p.dy??0)/2},center=transformPoint(part,{x:(x+other.x)/2,y:(y+other.y)/2});p.dx=String(sign*(x-other.x));p.dy=String(sign*(y-other.y));part.x=center.x;part.y=center.y;return;
